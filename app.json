@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Aire",
+    "slug": "aire",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "aire",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.aire.breathing"
+    },
+    "android": {
+      "package": "app.aire.breathing",
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F4ED"
+      },
+      "permissions": [
+        "android.permission.VIBRATE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "themeColor": "#070A11",
+      "backgroundColor": "#070A11",
+      "shortName": "Aire",
+      "lang": "ru",
+      "scope": "/",
+      "startUrl": "/"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-audio"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4a688b64-e316-4dca-8565-ddb4bf91c9d6"
+      }
+    }
+  }
+}
