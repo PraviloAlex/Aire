@@ -12,6 +12,7 @@ import {
 import { getPracticeById } from "@/data/breathingPractices";
 import { RATING_ORDER, ratingFaces, reflectionTriggers } from "@/data/reflectionContent";
 import { ScreenBackground } from "@/features/common/ScreenBackground";
+import { pluralizeRu } from "@/features/common/pluralizeRu";
 import { generateId, saveSessionRecord } from "@/storage/sessionStorage";
 import { sessionScreenTones } from "@/theme/gradients";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -150,7 +151,9 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
         <View style={[styles.statsBlock, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={styles.statLine}>
             {minutes} мин дыхания
-            {practice ? ` · ${practice.pattern.rounds} циклов` : ""}
+            {practice
+              ? ` · ${practice.pattern.rounds} ${pluralizeRu(practice.pattern.rounds, ["цикл", "цикла", "циклов"])}`
+              : ""}
           </Text>
           {practice ? (
             <Text style={styles.statPractice}>Практика: {practice.title}</Text>

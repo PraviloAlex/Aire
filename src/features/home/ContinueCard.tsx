@@ -5,7 +5,6 @@ import { editorial, editorialFont } from "@/theme/editorial";
 
 type ContinueCardProps = Readonly<{
   practiceId: string;
-  isFavorite?: boolean;
 }>;
 
 const webShadow =
@@ -13,12 +12,12 @@ const webShadow =
     ? ({ boxShadow: "0 4px 16px rgba(33,29,24,0.10)" } as object)
     : undefined;
 
-export function ContinueCard({ practiceId, isFavorite = false }: ContinueCardProps) {
+export function ContinueCard({ practiceId }: ContinueCardProps) {
   const practice = getPracticeById(practiceId);
   if (!practice) return null;
 
   const href = `/session/${practice.id}` as Href;
-  const eyebrow = isFavorite ? "Ты выбираешь это чаще всего" : "Продолжить";
+  const eyebrow = "Продолжить";
 
   return (
     <Link href={href} asChild>

@@ -22,10 +22,9 @@ function partOfDay(hour: number): string {
 
 export default function TodayScreen() {
   const insets = useSafeAreaInsets();
-  const { hasHistory, lastPracticeId, favoritePracticeId } = usePersonalization();
+  const { hasHistory, lastPracticeId } = usePersonalization();
   const now = new Date();
   const eyebrow = `${DAYS_RU[now.getDay()]} · ${partOfDay(now.getHours())}`;
-  const continuePracticeId = lastPracticeId ?? favoritePracticeId;
 
   return (
     <View style={styles.root}>
@@ -55,11 +54,8 @@ export default function TodayScreen() {
           </Text>
         </View>
 
-        {hasHistory && continuePracticeId ? (
-          <ContinueCard
-            practiceId={continuePracticeId}
-            isFavorite={lastPracticeId === null}
-          />
+        {hasHistory && lastPracticeId ? (
+          <ContinueCard practiceId={lastPracticeId} />
         ) : null}
         <StateSelector />
       </ScrollView>

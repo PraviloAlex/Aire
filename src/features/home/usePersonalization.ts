@@ -1,19 +1,17 @@
 import { useEffect, useState } from "react";
-import { getFavoritePracticeId, getLastPracticeId } from "@/features/progress/progressStats";
+import { getLastPracticeId } from "@/features/progress/progressStats";
 import { loadSessionHistory } from "@/storage/sessionStorage";
 
 type PersonalizationState = Readonly<{
   isLoading: boolean;
   hasHistory: boolean;
   lastPracticeId: string | null;
-  favoritePracticeId: string | null;
 }>;
 
 const INITIAL: PersonalizationState = {
   isLoading: true,
   hasHistory: false,
   lastPracticeId: null,
-  favoritePracticeId: null,
 };
 
 export function usePersonalization(): PersonalizationState {
@@ -26,11 +24,10 @@ export function usePersonalization(): PersonalizationState {
           isLoading: false,
           hasHistory: records.length > 0,
           lastPracticeId: getLastPracticeId(records),
-          favoritePracticeId: getFavoritePracticeId(records),
         });
       })
       .catch(() => {
-        setState({ isLoading: false, hasHistory: false, lastPracticeId: null, favoritePracticeId: null });
+        setState({ isLoading: false, hasHistory: false, lastPracticeId: null });
       });
   }, []);
 
