@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
 import { ScreenBackground } from "@/features/common/ScreenBackground";
@@ -43,16 +43,17 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const { cuePhaseChange: cueHapticPhaseChange } = useSessionHapticCues(cueSettings);
   const { isCompleted, isRunning, pause, reset, snapshot, start } = timer;
   const [prepRemaining, setPrepRemaining] = useState(PREP_SECONDS);
-  const controlsOpacity = useRef(new Animated.Value(1)).current;
   const textScale = useRef(new Animated.Value(1)).current;
   const textAnimRef = useRef<Animated.CompositeAnimation | null>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hideAnim = useRef<Animated.CompositeAnimation | null>(null);
+  const hintOpacity = useRef(new Animated.Value(0)).current;
+  const hintAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const hintShownRef = useRef(false);
   const phaseKey = `${snapshot.roundIndex}-${snapshot.phaseIndex}`;
   const goal = practice.goal;
   const accent = stateColors[goal];
   const tones = sessionScreenTones[goal];
   const isPreparing = snapshot.status === "idle" && prepRemaining > 0;
+  const isPaused = snapshot.status === "paused";
   const phaseRemainingSeconds = getPhaseRemainingSeconds(snapshot);
   const currentPhaseName = snapshot.currentPhase.name;
   const currentPhaseDuration = snapshot.currentPhase.durationSeconds;
@@ -111,43 +112,24 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
     textAnimRef.current.start();
   }, [phaseKey, isPreparing, currentPhaseName, currentPhaseDuration, textScale]);
 
-  const showControls = useCallback(() => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideAnim.current?.stop();
-    Animated.timing(controlsOpacity, {
-      toValue: 1,
-      duration: 220,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start();
-    hideTimer.current = setTimeout(() => {
-      hideAnim.current = Animated.timing(controlsOpacity, {
-        toValue: 0.15,
-        duration: 600,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      });
-      hideAnim.current.start();
-    }, 3000);
-  }, [controlsOpacity]);
-
+  // Разовый хинт «коснись, чтобы пауза» — показываем один раз в начале и плавно гасим.
   useEffect(() => {
-    if (isRunning && !isPreparing) {
-      showControls();
-    } else {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-      Animated.timing(controlsOpacity, {
-        toValue: 1,
-        duration: 220,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }).start();
+    if (isRunning && !isPreparing && !hintShownRef.current) {
+      hintShownRef.current = true;
+      hintOpacity.setValue(1);
+      hintAnimRef.current = Animated.sequence([
+        Animated.delay(3200),
+        Animated.timing(hintOpacity, {
+          toValue: 0,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]);
+      hintAnimRef.current.start();
     }
-    return () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-      hideAnim.current?.stop();
-    };
-  }, [isRunning, isPreparing, showControls, controlsOpacity]);
+    return () => hintAnimRef.current?.stop();
+  }, [isRunning, isPreparing, hintOpacity]);
 
   const handleRestart = useCallback(() => {
     reset();
@@ -157,11 +139,12 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const handlePrimaryPress = useCallback(() => {
     if (isPreparing) return;
     if (isRunning) {
+      hintOpacity.setValue(0);
       pause();
       return;
     }
     start();
-  }, [isPreparing, isRunning, pause, start]);
+  }, [isPreparing, isRunning, pause, start, hintOpacity]);
 
   const handleStop = useCallback(() => {
     pause();
@@ -183,29 +166,19 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
     <ScreenBackground id="sessionBg" top={tones.top} mid={tones.mid} base={tones.base}>
       <View style={styles.screen}>
         <View style={styles.topBar}>
-          <Link href="/" asChild>
-            <Pressable style={styles.topButton} accessibilityRole="button" accessibilityLabel="Назад">
-              <Ionicons name="chevron-back" size={28} color="#F2F6FA" />
-            </Pressable>
-          </Link>
           <Pressable
             style={styles.topButton}
             onPress={handleStop}
             accessibilityRole="button"
-            accessibilityLabel="Завершить сессию"
+            accessibilityLabel="Закрыть сессию"
           >
-            <Text style={styles.endText}>End</Text>
+            <Ionicons name="close" size={28} color="#F2F6FA" />
           </Pressable>
         </View>
 
         <SessionProgressBar progress={progressValue} remainingSeconds={remainingValue} accent={accent} />
 
-        <TouchableWithoutFeedback
-          onPress={() => {
-            if (isRunning && !isPreparing) showControls();
-          }}
-          accessibilityRole="none"
-        >
+        <TouchableWithoutFeedback onPress={handlePrimaryPress} accessibilityRole="none">
           <View style={styles.center}>
             <View style={styles.orbWrap}>
               <ShaderOrb
@@ -226,19 +199,27 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
           </View>
         </TouchableWithoutFeedback>
 
-        <Animated.View style={[styles.bottom, { opacity: controlsOpacity }]}>
-          <View style={styles.controls}>
-            <Pressable
-              style={[styles.primaryButton, { backgroundColor: `${accent}22` }, isPreparing && styles.disabled]}
-              onPress={handlePrimaryPress}
-              accessibilityRole="button"
-              accessibilityLabel={isRunning ? "Пауза" : "Продолжить"}
-              disabled={isPreparing}
-            >
-              <Ionicons name={isRunning ? "pause" : "play"} size={28} color="#DCE8F4" />
-            </Pressable>
-          </View>
-        </Animated.View>
+        <View style={styles.bottom}>
+          {isPaused ? (
+            <View style={styles.pausedControls}>
+              <Pressable
+                style={[styles.primaryButton, { backgroundColor: `${accent}22` }]}
+                onPress={start}
+                accessibilityRole="button"
+                accessibilityLabel="Продолжить"
+              >
+                <Ionicons name="play" size={28} color="#DCE8F4" />
+              </Pressable>
+              <Pressable onPress={handleStop} accessibilityRole="button" accessibilityLabel="Завершить сессию">
+                <Text style={styles.finishLink}>Завершить</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Animated.Text style={[styles.tapHint, { opacity: hintOpacity }]}>
+              Коснись, чтобы пауза
+            </Animated.Text>
+          )}
+        </View>
       </View>
     </ScreenBackground>
   );
@@ -264,12 +245,6 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
-  },
-  endText: {
-    color: "#8FA1B7",
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 0.4,
   },
   center: {
     flex: 1,
@@ -342,23 +317,13 @@ const styles = StyleSheet.create({
   bottom: {
     width: "100%",
     alignItems: "center",
-  },
-  controls: {
-    flexDirection: "row",
-    alignItems: "center",
+    minHeight: 90,
     justifyContent: "center",
-    gap: spacing.xl,
   },
-  disabled: {
-    opacity: 0.5,
-  },
-  iconButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
+  pausedControls: {
+    width: "100%",
     alignItems: "center",
-    justifyContent: "center",
+    gap: spacing.lg,
   },
   primaryButton: {
     width: 62,
@@ -366,5 +331,18 @@ const styles = StyleSheet.create({
     borderRadius: 31,
     alignItems: "center",
     justifyContent: "center",
+  },
+  finishLink: {
+    color: "#8FA1B7",
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  tapHint: {
+    color: "#6E8093",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+    letterSpacing: 0.3,
   },
 });
