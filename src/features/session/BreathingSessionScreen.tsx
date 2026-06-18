@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
 import { ScreenBackground } from "@/features/common/ScreenBackground";
 import { ShaderOrb } from "@/features/session/orbShader/ShaderOrb";
 import { getPhaseHint } from "@/features/session/phaseHints";
@@ -57,6 +57,8 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const goal = practice.goal;
   const accent = stateColors[goal];
   const tones = sessionScreenTones[goal];
+  // Мягкое свечение только на круглой кнопке и только на web (см. DESIGN-GUIDE).
+  const primaryGlow = Platform.OS === "web" ? ({ boxShadow: `0 6px 22px ${accent}40` } as object) : undefined;
   const isPreparing = snapshot.status === "idle" && prepRemaining > 0;
   const isPaused = snapshot.status === "paused";
   const phaseRemainingSeconds = getPhaseRemainingSeconds(snapshot);
@@ -195,16 +197,15 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
       <View style={styles.screen}>
         <View style={styles.topBar}>
           <Pressable
-            style={styles.topButton}
+            style={styles.closeChip}
             onPress={handleStop}
             accessibilityRole="button"
             accessibilityLabel="Закрыть сессию"
           >
-            <Ionicons name="close" size={28} color="#F2F6FA" />
+            <Ionicons name="close" size={18} color="#C9D4E0" />
           </Pressable>
+          <SessionProgressBar progress={progressValue} remainingSeconds={remainingValue} accent={accent} />
         </View>
-
-        <SessionProgressBar progress={progressValue} remainingSeconds={remainingValue} accent={accent} />
 
         <TouchableWithoutFeedback onPress={handlePrimaryPress} accessibilityRole="none">
           <View style={styles.center}>
@@ -236,18 +237,42 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
 
         <View style={styles.bottom}>
           {isPaused ? (
-            <View style={styles.pausedControls}>
-              <Pressable
-                style={[styles.primaryButton, { backgroundColor: `${accent}22` }]}
-                onPress={start}
-                accessibilityRole="button"
-                accessibilityLabel="Продолжить"
-              >
-                <Ionicons name="play" size={28} color="#DCE8F4" />
-              </Pressable>
-              <Pressable onPress={handleStop} accessibilityRole="button" accessibilityLabel="Завершить сессию">
-                <Text style={styles.finishLink}>Завершить</Text>
-              </Pressable>
+            <View style={styles.controlRow}>
+              <View style={styles.controlItem}>
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={handleRestart}
+                  accessibilityRole="button"
+                  accessibilityLabel="Начать заново"
+                >
+                  <Ionicons name="refresh-outline" size={20} color="#A9B6C6" />
+                </Pressable>
+                <Text style={styles.controlLabel}>Заново</Text>
+              </View>
+
+              <View style={styles.controlItem}>
+                <Pressable
+                  style={[styles.primaryButton, { backgroundColor: accent }, primaryGlow]}
+                  onPress={start}
+                  accessibilityRole="button"
+                  accessibilityLabel="Продолжить"
+                >
+                  <Ionicons name="play" size={28} color="#06121F" />
+                </Pressable>
+                <Text style={styles.controlLabelPrimary}>Продолжить</Text>
+              </View>
+
+              <View style={styles.controlItem}>
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={handleStop}
+                  accessibilityRole="button"
+                  accessibilityLabel="Завершить сессию"
+                >
+                  <Ionicons name="checkmark-outline" size={20} color="#A9B6C6" />
+                </Pressable>
+                <Text style={styles.controlLabel}>Завершить</Text>
+              </View>
             </View>
           ) : (
             <Animated.Text style={[styles.tapHint, { opacity: hintOpacity }]}>
@@ -273,11 +298,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: spacing.md,
   },
-  topButton: {
-    width: 44,
-    height: 44,
+  closeChip: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.06)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -356,23 +383,44 @@ const styles = StyleSheet.create({
     minHeight: 90,
     justifyContent: "center",
   },
-  pausedControls: {
+  controlRow: {
     width: "100%",
+    flexDirection: "row",
     alignItems: "center",
-    gap: spacing.lg,
+    justifyContent: "center",
+    gap: 32,
   },
-  primaryButton: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+  controlItem: {
+    alignItems: "center",
+    gap: 6,
+  },
+  secondaryButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
   },
-  finishLink: {
-    color: "#8FA1B7",
-    fontSize: 14,
+  primaryButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  controlLabel: {
+    color: "#5E7088",
+    fontSize: 10,
     fontWeight: "600",
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
+  },
+  controlLabelPrimary: {
+    color: "#7C8DA0",
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
   tapHint: {
     color: "#6E8093",
