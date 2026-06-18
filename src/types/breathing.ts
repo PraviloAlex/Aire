@@ -95,6 +95,7 @@ export type SessionRecord = Readonly<{
   durationSeconds: number;
   completedAt: string;
   reflection: ReflectionRating | null;
+  completed?: boolean;
   trigger?: string;
   note?: string;
 }>;

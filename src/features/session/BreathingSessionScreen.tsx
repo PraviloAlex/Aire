@@ -11,6 +11,7 @@ import { getPhaseRemainingSeconds, useBreathingTimer } from "@/features/session/
 import { useSessionAudioCues } from "@/features/session/useSessionAudioCues";
 import { useSessionHapticCues } from "@/features/session/useSessionHapticCues";
 import { useSettings } from "@/features/settings/SettingsContext";
+import { generateId, saveSessionRecord } from "@/storage/sessionStorage";
 import { sessionScreenTones } from "@/theme/gradients";
 import { useTheme } from "@/theme/ThemeProvider";
 import { fontFamily, radius, spacing } from "@/theme/tokens";
@@ -43,6 +44,8 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const { cuePhaseChange: cueHapticPhaseChange } = useSessionHapticCues(cueSettings);
   const { isCompleted, isRunning, pause, reset, snapshot, start } = timer;
   const [prepRemaining, setPrepRemaining] = useState(PREP_SECONDS);
+  const elapsedRef = useRef(0);
+  elapsedRef.current = snapshot.totalElapsedSeconds;
   const textScale = useRef(new Animated.Value(1)).current;
   const textOpacity = useRef(new Animated.Value(1)).current;
   const textAnimRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -160,9 +163,21 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   }, [isPreparing, isRunning, pause, start, hintOpacity]);
 
   const handleStop = useCallback(() => {
+    const elapsed = elapsedRef.current;
+    if (elapsed > 0) {
+      void saveSessionRecord({
+        id: generateId(),
+        practiceId: practice.id,
+        goal,
+        durationSeconds: Math.round(elapsed),
+        completedAt: new Date().toISOString(),
+        reflection: null,
+        completed: false,
+      });
+    }
     pause();
     router.push("/");
-  }, [pause, router]);
+  }, [pause, router, practice.id, goal]);
 
   if (isCompleted) {
     return (

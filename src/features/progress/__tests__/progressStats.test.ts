@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { computeProgressStats } from "@/features/progress/progressStats";
+import {
+  computeProgressStats,
+  getFavoritePracticeId,
+  getHelpRate,
+  getLastPracticeId,
+  getPracticeUsageCounts,
+} from "@/features/progress/progressStats";
 import type { SessionRecord } from "@/types/breathing";
 
 function makeRecord(overrides: Partial<SessionRecord> = {}): SessionRecord {
@@ -76,5 +82,87 @@ describe("computeProgressStats — с данными", () => {
     const stats = computeProgressStats([makeRecord({ reflection: null })]);
     expect(stats.totalSessions).toBe(1);
     expect(stats.isFirstTime).toBe(false);
+  });
+});
+
+describe("getLastPracticeId", () => {
+  it("возвращает null при пустом массиве", () => {
+    expect(getLastPracticeId([])).toBeNull();
+  });
+
+  it("возвращает practiceId последней записи по дате", () => {
+    const old = makeRecord({ id: "1", practiceId: "box-breathing", completedAt: new Date(Date.now() - 5000).toISOString() });
+    const recent = makeRecord({ id: "2", practiceId: "long-exhale", completedAt: new Date().toISOString() });
+    expect(getLastPracticeId([old, recent])).toBe("long-exhale");
+  });
+
+  it("возвращает единственную запись при одном элементе", () => {
+    expect(getLastPracticeId([makeRecord()])).toBe("box-breathing");
+  });
+});
+
+describe("getFavoritePracticeId", () => {
+  it("возвращает null при пустом массиве", () => {
+    expect(getFavoritePracticeId([])).toBeNull();
+  });
+
+  it("возвращает самый частый practiceId", () => {
+    const records = [
+      makeRecord({ id: "1", practiceId: "box-breathing" }),
+      makeRecord({ id: "2", practiceId: "box-breathing" }),
+      makeRecord({ id: "3", practiceId: "long-exhale" }),
+    ];
+    expect(getFavoritePracticeId(records)).toBe("box-breathing");
+  });
+
+  it("возвращает единственный practiceId при равенстве", () => {
+    const records = [
+      makeRecord({ id: "1", practiceId: "box-breathing" }),
+      makeRecord({ id: "2", practiceId: "long-exhale" }),
+    ];
+    const result = getFavoritePracticeId(records);
+    expect(result === "box-breathing" || result === "long-exhale").toBe(true);
+  });
+});
+
+describe("getPracticeUsageCounts", () => {
+  it("возвращает пустой объект при пустом массиве", () => {
+    expect(getPracticeUsageCounts([])).toEqual({});
+  });
+
+  it("считает количество по каждому practiceId", () => {
+    const records = [
+      makeRecord({ id: "1", practiceId: "box-breathing" }),
+      makeRecord({ id: "2", practiceId: "box-breathing" }),
+      makeRecord({ id: "3", practiceId: "long-exhale" }),
+    ];
+    expect(getPracticeUsageCounts(records)).toEqual({ "box-breathing": 2, "long-exhale": 1 });
+  });
+});
+
+describe("getHelpRate", () => {
+  it("возвращает 0 при пустом массиве", () => {
+    expect(getHelpRate([])).toBe(0);
+  });
+
+  it("возвращает 0 когда ни у кого нет reflection", () => {
+    expect(getHelpRate([makeRecord({ reflection: null })])).toBe(0);
+  });
+
+  it("считает better и much_better как помогло", () => {
+    const records = [
+      makeRecord({ id: "1", reflection: "better" }),
+      makeRecord({ id: "2", reflection: "same" }),
+      makeRecord({ id: "3", reflection: null }),
+    ];
+    expect(getHelpRate(records)).toBe(0.5);
+  });
+
+  it("возвращает 1 когда все с reflection оценили как better/much_better", () => {
+    const records = [
+      makeRecord({ id: "1", reflection: "better" }),
+      makeRecord({ id: "2", reflection: "much_better" }),
+    ];
+    expect(getHelpRate(records)).toBe(1);
   });
 });

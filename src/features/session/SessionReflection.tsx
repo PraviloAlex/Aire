@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { getCardForGoal } from "@/data/learnArticles";
+import { getPracticeById } from "@/data/breathingPractices";
 import { RATING_ORDER, ratingFaces, reflectionTriggers } from "@/data/reflectionContent";
 import { ScreenBackground } from "@/features/common/ScreenBackground";
 import { generateId, saveSessionRecord } from "@/storage/sessionStorage";
@@ -17,6 +17,8 @@ import { sessionScreenTones } from "@/theme/gradients";
 import { useTheme } from "@/theme/ThemeProvider";
 import { radius, spacing, stateColors, typography } from "@/theme/tokens";
 import type { BreathingGoal, ReflectionRating } from "@/types/breathing";
+
+const PROGRESS_UPDATE_ROUTE = "/(tabs)/progress" as Href;
 
 type SessionReflectionProps = Readonly<{
   goal: BreathingGoal;
@@ -30,6 +32,8 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
   const { colors, setMode } = useTheme();
   const accent = stateColors[goal];
   const tones = sessionScreenTones[goal];
+  const practice = getPracticeById(practiceId);
+  const minutes = Math.round(durationSeconds / 60);
 
   const [rating, setRating] = useState<ReflectionRating | null>(null);
   const [trigger, setTrigger] = useState<string | null>(null);
@@ -53,6 +57,7 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
       durationSeconds,
       completedAt: new Date().toISOString(),
       reflection: rating,
+      completed: true,
       trigger: trigger ?? undefined,
       note: note.trim() || undefined,
     });
@@ -61,17 +66,13 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
       setSaveError(true);
       return;
     }
-    const article = getCardForGoal(goal);
-    if (article) {
-      router.replace(`/card/${article.id}?goal=${goal}` as Href);
-    } else {
-      router.replace("/");
-    }
+    router.replace(PROGRESS_UPDATE_ROUTE);
   };
 
   const handleSkip = async () => {
     if (isSavingRef.current) return;
     isSavingRef.current = true;
+    setSaveError(false);
     const ok = await saveSessionRecord({
       id: generateId(),
       practiceId,
@@ -79,12 +80,28 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
       durationSeconds,
       completedAt: new Date().toISOString(),
       reflection: null,
+      completed: true,
     });
     if (!ok) {
       isSavingRef.current = false;
       setSaveError(true);
       return;
     }
+    router.replace(PROGRESS_UPDATE_ROUTE);
+  };
+
+  const handleChooseOther = async () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+    await saveSessionRecord({
+      id: generateId(),
+      practiceId,
+      goal,
+      durationSeconds,
+      completedAt: new Date().toISOString(),
+      reflection: null,
+      completed: true,
+    });
     router.replace("/");
   };
 
@@ -128,6 +145,16 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
               </Pressable>
             );
           })}
+        </View>
+
+        <View style={[styles.statsBlock, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={styles.statLine}>
+            {minutes} мин дыхания
+            {practice ? ` · ${practice.pattern.rounds} циклов` : ""}
+          </Text>
+          {practice ? (
+            <Text style={styles.statPractice}>Практика: {practice.title}</Text>
+          ) : null}
         </View>
 
         <Text style={styles.sectionLabel}>Что повлияло?</Text>
@@ -191,6 +218,14 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
           accessibilityRole="button"
         >
           <Text style={[styles.restartLabel, { color: accent }]}>Повторить сессию →</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.skipButton}
+          onPress={() => { void handleChooseOther(); }}
+          accessibilityRole="button"
+        >
+          <Text style={styles.skipLabel}>Выбрать другое</Text>
         </Pressable>
       </ScrollView>
     </ScreenBackground>
@@ -279,6 +314,24 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     minHeight: 80,
     textAlignVertical: "top",
+  },
+  statsBlock: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
+  },
+  statLine: {
+    color: "#8892A4",
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "600",
+  },
+  statPractice: {
+    color: "#8892A4",
+    fontSize: 13,
+    lineHeight: 19,
   },
   saveErrorText: {
     color: "#E57373",
