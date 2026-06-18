@@ -2,19 +2,19 @@ import { useCallback, useRef } from "react";
 import { Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { hapticStyleForPhase } from "@/features/session/hapticStyles";
-import type { BreathingPhase, SessionCueSettings } from "@/types/breathing";
+import type { BreathingGoal, BreathingPhase, SessionCueSettings } from "@/types/breathing";
 
-export function useSessionHapticCues(settings: SessionCueSettings) {
+export function useSessionHapticCues(settings: SessionCueSettings, goal?: BreathingGoal) {
   const previousPhaseRef = useRef<string | null>(null);
 
   const playHaptic = useCallback(
     (phase: BreathingPhase) => {
       if (!settings.hapticsEnabled || Platform.OS === "web") return;
-      const style = hapticStyleForPhase(phase.name);
+      const style = hapticStyleForPhase(phase.name, goal);
       if (!style) return;
       Haptics.impactAsync(style as Haptics.ImpactFeedbackStyle).catch(() => {});
     },
-    [settings.hapticsEnabled]
+    [settings.hapticsEnabled, goal]
   );
 
   const cuePhaseChange = useCallback(

@@ -41,7 +41,7 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const { stateColors, setMode } = useTheme();
   const timer = useBreathingTimer(practice.pattern);
   const { cuePhaseChange } = useSessionAudioCues(cueSettings);
-  const { cuePhaseChange: cueHapticPhaseChange } = useSessionHapticCues(cueSettings);
+  const { cuePhaseChange: cueHapticPhaseChange } = useSessionHapticCues(cueSettings, practice.goal);
   const { isCompleted, isRunning, pause, reset, snapshot, start } = timer;
   const [prepRemaining, setPrepRemaining] = useState(PREP_SECONDS);
   const elapsedRef = useRef(0);
