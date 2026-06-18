@@ -4,14 +4,23 @@ import { ScreenBackground } from "@/features/common/ScreenBackground";
 import { useSettings } from "@/features/settings/SettingsContext";
 import { homeScreenTones } from "@/theme/gradients";
 import { colors, fontFamily, radius, spacing } from "@/theme/tokens";
+import type { CenterDisplayMode } from "@/types/breathing";
 
 const GLASS_BG = "rgba(255,255,255,0.05)";
 const GLASS_BORDER = "rgba(255,255,255,0.08)";
 
+const CENTER_OPTIONS: readonly { mode: CenterDisplayMode; label: string }[] = [
+  { mode: "phase_count", label: "Фаза + счёт" },
+  { mode: "phase", label: "Только фаза" },
+  { mode: "clean", label: "Чисто" },
+];
+
 export default function SettingsScreen() {
   const {
     cueSettings,
+    centerDisplay,
     defaultDurationMinutes,
+    setCenterDisplay,
     setDefaultDurationMinutes,
     setHapticsEnabled,
     setSoundEnabled,
@@ -77,6 +86,34 @@ export default function SettingsScreen() {
                   ]}
                 >
                   {minutes} мин
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.settingTitle}>Что в центре орба</Text>
+          <Text style={styles.settingCopy}>Что показывать во время практики.</Text>
+          <View style={styles.durationRow}>
+            {CENTER_OPTIONS.map((option) => (
+              <Pressable
+                key={option.mode}
+                style={[
+                  styles.durationButton,
+                  centerDisplay === option.mode && styles.durationButtonActive,
+                ]}
+                onPress={() => setCenterDisplay(option.mode)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: centerDisplay === option.mode }}
+              >
+                <Text
+                  style={[
+                    styles.durationLabel,
+                    centerDisplay === option.mode && styles.durationLabelActive,
+                  ]}
+                >
+                  {option.label}
                 </Text>
               </Pressable>
             ))}

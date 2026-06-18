@@ -36,7 +36,7 @@ const phaseActionLabels: Record<BreathingPhaseName, string> = {
 
 export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps) {
   const router = useRouter();
-  const { cueSettings } = useSettings();
+  const { cueSettings, centerDisplay } = useSettings();
   const { stateColors, setMode } = useTheme();
   const timer = useBreathingTimer(practice.pattern);
   const { cuePhaseChange } = useSessionAudioCues(cueSettings);
@@ -44,7 +44,9 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const { isCompleted, isRunning, pause, reset, snapshot, start } = timer;
   const [prepRemaining, setPrepRemaining] = useState(PREP_SECONDS);
   const textScale = useRef(new Animated.Value(1)).current;
+  const textOpacity = useRef(new Animated.Value(1)).current;
   const textAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const textFadeRef = useRef<Animated.CompositeAnimation | null>(null);
   const hintOpacity = useRef(new Animated.Value(0)).current;
   const hintAnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const hintShownRef = useRef(false);
@@ -110,7 +112,18 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
       useNativeDriver: true,
     });
     textAnimRef.current.start();
-  }, [phaseKey, isPreparing, currentPhaseName, currentPhaseDuration, textScale]);
+
+    // Crossfade: текст новой фазы мягко проявляется (~300ms), орб не трогаем.
+    textFadeRef.current?.stop();
+    textOpacity.setValue(0);
+    textFadeRef.current = Animated.timing(textOpacity, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    });
+    textFadeRef.current.start();
+  }, [phaseKey, isPreparing, currentPhaseName, currentPhaseDuration, textScale, textOpacity]);
 
   // Разовый хинт «коснись, чтобы пауза» — показываем один раз в начале и плавно гасим.
   useEffect(() => {
@@ -190,10 +203,17 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
                 running={isRunning && !isPreparing}
                 size={ORB_SIZE}
               />
-              <Animated.View style={[styles.centerText, { transform: [{ scale: textScale }] }]} pointerEvents="none">
-                <Text style={styles.verb}>{instructionLabel}</Text>
-                <Text style={styles.sec}>{instructionSeconds}</Text>
-              </Animated.View>
+              {centerDisplay !== "clean" ? (
+                <Animated.View
+                  style={[styles.centerText, { opacity: textOpacity, transform: [{ scale: textScale }] }]}
+                  pointerEvents="none"
+                >
+                  <Text style={styles.verb}>{instructionLabel}</Text>
+                  {centerDisplay === "phase_count" ? (
+                    <Text style={styles.sec}>{instructionSeconds}</Text>
+                  ) : null}
+                </Animated.View>
+              ) : null}
             </View>
             {SHOW_PHASE_HINTS && phaseHint ? <Text style={styles.hint}>{phaseHint}</Text> : null}
           </View>
@@ -269,18 +289,19 @@ const styles = StyleSheet.create({
   },
   verb: {
     fontFamily: fontFamily.display,
-    color: "#FFFFFF",
-    fontSize: 38,
-    fontWeight: "700",
-    lineHeight: 44,
+    color: "#F2F6FA",
+    fontSize: 34,
+    fontWeight: "600",
+    lineHeight: 40,
+    letterSpacing: 0.5,
     textAlign: "center",
   },
   sec: {
     fontFamily: fontFamily.display,
-    color: "#FFFFFF",
-    fontSize: 58,
-    fontWeight: "700",
-    lineHeight: 64,
+    color: "#EAF2FA",
+    fontSize: 56,
+    fontWeight: "600",
+    lineHeight: 62,
   },
   hint: {
     color: "#8191A6",

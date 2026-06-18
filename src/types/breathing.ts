@@ -54,6 +54,9 @@ export type SessionCueSettings = Readonly<{
   hapticsEnabled: boolean;
 }>;
 
+// Что показывать в центре орба во время сессии.
+export type CenterDisplayMode = "phase_count" | "phase" | "clean";
+
 export type TimerSnapshot = Readonly<{
   status: SessionStatus;
   phaseIndex: number;
