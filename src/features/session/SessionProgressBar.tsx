@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, type DimensionValue } from "react-native";
+import { Platform, StyleSheet, Text, View, type DimensionValue } from "react-native";
 import { formatRemaining } from "@/features/session/formatTime";
 
 type SessionProgressBarProps = Readonly<{
@@ -7,16 +7,21 @@ type SessionProgressBarProps = Readonly<{
   accent: string;
 }>;
 
+// Плавное проезжание заполнения между секундными тиками таймера (TICK_SECONDS = 1):
+// каждый шаг линейно проезжает ровно за 1с до следующего обновления. Только web.
+const webSmooth = Platform.OS === "web" ? ({ transition: "width 1s linear" } as object) : undefined;
+
 // Капсула «прогресс + время» в одном пилюле-контейнере. Живёт в верхней строке
 // рядом с крестиком: всё мета-инфо собрано в один объект, ничего не висит отдельно.
 export function SessionProgressBar({ progress, remainingSeconds, accent }: SessionProgressBarProps) {
   const clamped = Math.max(0, Math.min(1, progress));
-  const widthPercent: DimensionValue = `${Math.round(clamped * 100)}%`;
+  // Дробная ширина (без Math.round) — убирает крупные «прыжки» по целым процентам.
+  const widthPercent = `${(clamped * 100).toFixed(2)}%` as DimensionValue;
 
   return (
     <View style={styles.capsule}>
       <View style={styles.track}>
-        <View style={[styles.fill, { width: widthPercent, backgroundColor: accent }]} />
+        <View style={[styles.fill, { width: widthPercent, backgroundColor: accent }, webSmooth]} />
       </View>
       <Text style={styles.time}>{formatRemaining(remainingSeconds)}</Text>
     </View>
