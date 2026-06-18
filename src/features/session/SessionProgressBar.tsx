@@ -19,7 +19,7 @@ export function SessionProgressBar({ progress, remainingSeconds, accent }: Sessi
       <View style={styles.track}>
         <View style={[styles.fill, { width: widthPercent, backgroundColor: accent }]} />
       </View>
-      <Text style={styles.remaining}>{formatRemaining(remainingSeconds)} осталось</Text>
+      <Text style={styles.remaining}>{formatRemaining(remainingSeconds)}</Text>
     </View>
   );
 }

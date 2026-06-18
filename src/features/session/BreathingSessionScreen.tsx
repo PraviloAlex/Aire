@@ -6,7 +6,6 @@ import { ScreenBackground } from "@/features/common/ScreenBackground";
 import { ShaderOrb } from "@/features/session/orbShader/ShaderOrb";
 import { getPhaseHint } from "@/features/session/phaseHints";
 import { SessionProgressBar } from "@/features/session/SessionProgressBar";
-import { SessionProgressRing } from "@/features/session/SessionProgressRing";
 import { SessionReflection } from "@/features/session/SessionReflection";
 import { getPhaseRemainingSeconds, useBreathingTimer } from "@/features/session/useBreathingTimer";
 import { useSessionAudioCues } from "@/features/session/useSessionAudioCues";
@@ -23,6 +22,8 @@ type BreathingSessionScreenProps = Readonly<{
 
 const ORB_SIZE = 300;
 const PREP_SECONDS = 3;
+// Подсказки фаз временно скрыты: тексты допишем и включим позже.
+const SHOW_PHASE_HINTS = false;
 
 const phaseActionLabels: Record<BreathingPhaseName, string> = {
   inhale: "Вдох",
@@ -35,8 +36,8 @@ const phaseActionLabels: Record<BreathingPhaseName, string> = {
 
 export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps) {
   const router = useRouter();
-  const { cueSettings, setSoundEnabled } = useSettings();
-  const { colors, stateColors, setMode } = useTheme();
+  const { cueSettings } = useSettings();
+  const { stateColors, setMode } = useTheme();
   const timer = useBreathingTimer(practice.pattern);
   const { cuePhaseChange } = useSessionAudioCues(cueSettings);
   const { cuePhaseChange: cueHapticPhaseChange } = useSessionHapticCues(cueSettings);
@@ -216,30 +217,17 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
                 running={isRunning && !isPreparing}
                 size={ORB_SIZE}
               />
-              <SessionProgressRing size={ORB_SIZE} progress={progressValue} color={accent} />
               <Animated.View style={[styles.centerText, { transform: [{ scale: textScale }] }]} pointerEvents="none">
                 <Text style={styles.verb}>{instructionLabel}</Text>
                 <Text style={styles.sec}>{instructionSeconds}</Text>
               </Animated.View>
             </View>
-            {phaseHint ? <Text style={styles.hint}>{phaseHint}</Text> : null}
+            {SHOW_PHASE_HINTS && phaseHint ? <Text style={styles.hint}>{phaseHint}</Text> : null}
           </View>
         </TouchableWithoutFeedback>
 
         <Animated.View style={[styles.bottom, { opacity: controlsOpacity }]}>
           <View style={styles.controls}>
-            <Pressable
-              style={[styles.iconButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
-              onPress={() => setSoundEnabled(!cueSettings.soundEnabled)}
-              accessibilityRole="button"
-              accessibilityLabel={cueSettings.soundEnabled ? "Выключить звук" : "Включить звук"}
-            >
-              <Ionicons
-                name={cueSettings.soundEnabled ? "volume-high-outline" : "volume-mute-outline"}
-                size={22}
-                color="#DCE8F4"
-              />
-            </Pressable>
             <Pressable
               style={[styles.primaryButton, { backgroundColor: `${accent}22` }, isPreparing && styles.disabled]}
               onPress={handlePrimaryPress}
