@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
 import { ScreenBackground } from "@/features/common/ScreenBackground";
+import { BreathingOrb } from "@/features/session/BreathingOrb";
 import { ShaderOrb } from "@/features/session/orbShader/ShaderOrb";
 import { getPhaseHint } from "@/features/session/phaseHints";
 import { SessionProgressBar } from "@/features/session/SessionProgressBar";
@@ -37,7 +38,7 @@ const phaseActionLabels: Record<BreathingPhaseName, string> = {
 
 export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps) {
   const router = useRouter();
-  const { cueSettings, centerDisplay } = useSettings();
+  const { cueSettings, centerDisplay, orbStyle } = useSettings();
   const { stateColors, setMode } = useTheme();
   const timer = useBreathingTimer(practice.pattern);
   const { cuePhaseChange } = useSessionAudioCues(cueSettings);
@@ -210,15 +211,25 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
         <TouchableWithoutFeedback onPress={handlePrimaryPress} accessibilityRole="none">
           <View style={styles.center}>
             <View style={styles.orbWrap}>
-              <ShaderOrb
-                goal={goal}
-                phaseName={snapshot.currentPhase.name}
-                durationSeconds={snapshot.currentPhase.durationSeconds}
-                phaseElapsedSeconds={snapshot.phaseElapsedSeconds}
-                isPreparing={isPreparing}
-                running={isRunning && !isPreparing}
-                size={ORB_SIZE}
-              />
+              {orbStyle === "classic" ? (
+                <BreathingOrb
+                  goal={goal}
+                  phaseName={snapshot.currentPhase.name}
+                  durationSeconds={snapshot.currentPhase.durationSeconds}
+                  running={isRunning && !isPreparing}
+                  size={ORB_SIZE}
+                />
+              ) : (
+                <ShaderOrb
+                  goal={goal}
+                  phaseName={snapshot.currentPhase.name}
+                  durationSeconds={snapshot.currentPhase.durationSeconds}
+                  phaseElapsedSeconds={snapshot.phaseElapsedSeconds}
+                  isPreparing={isPreparing}
+                  running={isRunning && !isPreparing}
+                  size={ORB_SIZE}
+                />
+              )}
               {centerDisplay !== "clean" ? (
                 <Animated.View
                   style={[styles.centerText, { opacity: textOpacity, transform: [{ scale: textScale }] }]}

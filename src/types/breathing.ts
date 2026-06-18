@@ -57,6 +57,9 @@ export type SessionCueSettings = Readonly<{
 // Что показывать в центре орба во время сессии.
 export type CenterDisplayMode = "phase_count" | "phase" | "clean";
 
+// Какой орб рендерить во время сессии: шейдерный (web WebGL) или классический.
+export type OrbStyle = "shader" | "classic";
+
 export type TimerSnapshot = Readonly<{
   status: SessionStatus;
   phaseIndex: number;

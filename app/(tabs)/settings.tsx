@@ -4,7 +4,7 @@ import { ScreenBackground } from "@/features/common/ScreenBackground";
 import { useSettings } from "@/features/settings/SettingsContext";
 import { homeScreenTones } from "@/theme/gradients";
 import { colors, fontFamily, radius, spacing } from "@/theme/tokens";
-import type { CenterDisplayMode } from "@/types/breathing";
+import type { CenterDisplayMode, OrbStyle } from "@/types/breathing";
 
 const GLASS_BG = "rgba(255,255,255,0.05)";
 const GLASS_BORDER = "rgba(255,255,255,0.08)";
@@ -15,12 +15,19 @@ const CENTER_OPTIONS: readonly { mode: CenterDisplayMode; label: string }[] = [
   { mode: "clean", label: "Чисто" },
 ];
 
+const ORB_OPTIONS: readonly { style: OrbStyle; label: string }[] = [
+  { style: "shader", label: "Шейдер" },
+  { style: "classic", label: "Классический" },
+];
+
 export default function SettingsScreen() {
   const {
     cueSettings,
     centerDisplay,
+    orbStyle,
     defaultDurationMinutes,
     setCenterDisplay,
+    setOrbStyle,
     setDefaultDurationMinutes,
     setHapticsEnabled,
     setSoundEnabled,
@@ -111,6 +118,34 @@ export default function SettingsScreen() {
                   style={[
                     styles.durationLabel,
                     centerDisplay === option.mode && styles.durationLabelActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.settingTitle}>Орб</Text>
+          <Text style={styles.settingCopy}>Шейдерный орб или классический.</Text>
+          <View style={styles.durationRow}>
+            {ORB_OPTIONS.map((option) => (
+              <Pressable
+                key={option.style}
+                style={[
+                  styles.durationButton,
+                  orbStyle === option.style && styles.durationButtonActive,
+                ]}
+                onPress={() => setOrbStyle(option.style)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: orbStyle === option.style }}
+              >
+                <Text
+                  style={[
+                    styles.durationLabel,
+                    orbStyle === option.style && styles.durationLabelActive,
                   ]}
                 >
                   {option.label}
