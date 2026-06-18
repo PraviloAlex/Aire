@@ -1,8 +1,10 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WaterRipple } from "@/features/common/WaterRipple";
+import { ContinueCard } from "@/features/home/ContinueCard";
 import { SosBar } from "@/features/home/SosBar";
 import { StateSelector } from "@/features/home/StateSelector";
+import { usePersonalization } from "@/features/home/usePersonalization";
 import { editorial, editorialFont } from "@/theme/editorial";
 
 const DAYS_RU = [
@@ -20,8 +22,10 @@ function partOfDay(hour: number): string {
 
 export default function TodayScreen() {
   const insets = useSafeAreaInsets();
+  const { hasHistory, lastPracticeId, favoritePracticeId } = usePersonalization();
   const now = new Date();
   const eyebrow = `${DAYS_RU[now.getDay()]} · ${partOfDay(now.getHours())}`;
+  const continuePracticeId = lastPracticeId ?? favoritePracticeId;
 
   return (
     <View style={styles.root}>
@@ -51,6 +55,12 @@ export default function TodayScreen() {
           </Text>
         </View>
 
+        {hasHistory && continuePracticeId ? (
+          <ContinueCard
+            practiceId={continuePracticeId}
+            isFavorite={lastPracticeId === null}
+          />
+        ) : null}
         <StateSelector />
       </ScrollView>
       <SosBar />
