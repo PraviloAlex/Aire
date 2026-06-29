@@ -275,12 +275,13 @@ export default function SettingsScreen() {
               </Text>
             </View>
             <Text style={styles.settingCopy}>Фоновый звук включается, если в настройках включён «Фоновый звук».</Text>
-            <View style={styles.segmentRow}>
+            <View style={styles.segmentRowWrap}>
               {soundscapes.map((s) => (
                 <Pressable
                   key={s.id}
                   style={[
                     styles.segmentButton,
+                    styles.segmentButtonHalf,
                     defaultSoundscapeId === s.id && styles.segmentButtonActive,
                   ]}
                   onPress={() => setDefaultSoundscapeId(s.id)}
@@ -500,6 +501,8 @@ const styles = StyleSheet.create({
   },
   orbItemLabelActive: { color: editorial.ink },
   segmentRow: { flexDirection: "row", gap: 8 },
+  segmentRowWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  segmentButtonHalf: { flexBasis: "47%" },
   segmentButton: {
     flex: 1,
     minHeight: 42,
