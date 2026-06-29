@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Platform, StyleSheet, View } from "react-native";
+import { getOrbPhaseTarget } from "@/features/session/orbMotion";
 import { stateOrbColors } from "@/theme/gradients";
 import { stateColors } from "@/theme/tokens";
 import type { BreathingGoal, BreathingPhaseName } from "@/types/breathing";
-import { getOrbPhaseTarget } from "@/features/session/orbMotion";
 
 type BreathingOrbProps = Readonly<{
   goal: BreathingGoal;

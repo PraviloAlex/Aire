@@ -6,11 +6,49 @@ export type ProgressStats = Readonly<{
   topGoal: BreathingGoal | null;
   weekSessions: number;
   isFirstTime: boolean;
+  currentStreak: number;
 }>;
+
+export type StreakMilestone = Readonly<{
+  target: number;
+  remaining: number;
+}>;
+
+const MILESTONES = [3, 7, 14, 30] as const;
+
+export function nextMilestone(streak: number): StreakMilestone | null {
+  const target = MILESTONES.find((m) => m > streak);
+  if (target === undefined) return null;
+  return { target, remaining: target - streak };
+}
+
+function toDateKey(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+function computeStreak(records: readonly SessionRecord[], today: string): number {
+  const days = new Set(records.map((r) => toDateKey(r.completedAt)));
+  let streak = 0;
+  let current = today;
+  if (!days.has(current)) {
+    const d = new Date(current + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() - 1);
+    current = d.toISOString().slice(0, 10);
+  }
+  while (days.has(current)) {
+    streak++;
+    const d = new Date(current + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() - 1);
+    current = d.toISOString().slice(0, 10);
+  }
+  return streak;
+}
 
 const WEEK_MS = 7 * 86_400_000;
 
 export function computeProgressStats(records: readonly SessionRecord[]): ProgressStats {
+  const today = new Date().toISOString().slice(0, 10);
+
   if (records.length === 0) {
     return {
       totalSessions: 0,
@@ -18,6 +56,7 @@ export function computeProgressStats(records: readonly SessionRecord[]): Progres
       topGoal: null,
       weekSessions: 0,
       isFirstTime: true,
+      currentStreak: 0,
     };
   }
 
@@ -39,7 +78,9 @@ export function computeProgressStats(records: readonly SessionRecord[]): Progres
     (Object.entries(counts).sort(([, a], [, b]) => (b ?? 0) - (a ?? 0))[0]?.[0] ??
       null) as BreathingGoal | null;
 
-  return { totalSessions, totalMinutes, topGoal, weekSessions, isFirstTime: false };
+  const currentStreak = computeStreak(records, today);
+
+  return { totalSessions, totalMinutes, topGoal, weekSessions, isFirstTime: false, currentStreak };
 }
 
 export function getLastPracticeId(records: readonly SessionRecord[]): string | null {

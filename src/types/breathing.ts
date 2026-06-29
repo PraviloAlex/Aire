@@ -52,6 +52,8 @@ export type BreathingPractice = Readonly<{
 export type SessionCueSettings = Readonly<{
   soundEnabled: boolean;
   hapticsEnabled: boolean;
+  voiceEnabled: boolean;
+  ambientEnabled: boolean;
 }>;
 
 // Что показывать в центре орба во время сессии.
@@ -101,4 +103,6 @@ export type SessionRecord = Readonly<{
   completed?: boolean;
   trigger?: string;
   note?: string;
+  bpmBefore?: number;
+  bpmAfter?: number;
 }>;

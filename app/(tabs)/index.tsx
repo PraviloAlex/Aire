@@ -1,10 +1,16 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WaterRipple } from "@/features/common/WaterRipple";
 import { ContinueCard } from "@/features/home/ContinueCard";
 import { SosBar } from "@/features/home/SosBar";
 import { StateSelector } from "@/features/home/StateSelector";
 import { usePersonalization } from "@/features/home/usePersonalization";
+import { useProgressStats } from "@/features/progress/useProgressStats";
+import { nextMilestone } from "@/features/progress/progressStats";
+import { useActiveProgram } from "@/features/programs/useActiveProgram";
+import { ProgramCard } from "@/features/programs/ProgramCard";
 import { editorial, editorialFont } from "@/theme/editorial";
 
 const DAYS_RU = [
@@ -21,8 +27,13 @@ function partOfDay(hour: number): string {
 }
 
 export default function TodayScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { hasHistory, lastPracticeId } = usePersonalization();
+  const { stats } = useProgressStats();
+  const { program } = useActiveProgram();
+  const streak = stats.currentStreak;
+  const milestone = nextMilestone(streak);
   const now = new Date();
   const eyebrow = `${DAYS_RU[now.getDay()]} · ${partOfDay(now.getHours())}`;
 
@@ -34,10 +45,25 @@ export default function TodayScreen() {
       >
         <View style={styles.topRow}>
           <Text style={styles.eyebrow}>{eyebrow}</Text>
-          <View style={styles.streak}>
-            <View style={styles.streakDot} />
-            <Text style={styles.streakNum}>0</Text>
-            <Text style={styles.streakLabel}>дней</Text>
+          <View style={styles.topRight}>
+          <View style={styles.streakGroup}>
+            <View style={styles.streak}>
+              <View style={styles.streakDot} />
+              <Text style={styles.streakNum}>{streak > 0 ? String(streak) : "—"}</Text>
+              <Text style={styles.streakLabel}>дней</Text>
+            </View>
+            {milestone !== null && streak > 0 ? (
+              <Text style={styles.streakHint}>ещё {milestone.remaining} до {milestone.target}</Text>
+            ) : null}
+          </View>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            style={styles.settingsBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Настройки"
+          >
+            <Ionicons name="settings-outline" size={18} color={editorial.inkFaint} />
+          </Pressable>
           </View>
         </View>
 
@@ -54,7 +80,8 @@ export default function TodayScreen() {
           </Text>
         </View>
 
-        {hasHistory && lastPracticeId ? (
+        <ProgramCard />
+        {hasHistory && lastPracticeId && !program ? (
           <ContinueCard practiceId={lastPracticeId} />
         ) : null}
         <StateSelector />
@@ -78,6 +105,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  topRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  settingsBtn: {
+    padding: 6,
+    marginLeft: 4,
+  },
   eyebrow: {
     fontFamily: editorialFont.sans,
     fontSize: 10,
@@ -86,10 +122,20 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: editorial.inkFaint,
   },
+  streakGroup: {
+    alignItems: "flex-end",
+    gap: 2,
+  },
   streak: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  streakHint: {
+    fontFamily: editorialFont.sans,
+    fontSize: 10,
+    color: editorial.inkFaint,
+    letterSpacing: 0.3,
   },
   streakDot: {
     width: 5,

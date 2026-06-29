@@ -9,6 +9,8 @@ type StoredSettings = Readonly<{
   defaultDurationMinutes: number;
   centerDisplay: CenterDisplayMode;
   orbStyle: OrbStyle;
+  defaultSoundscapeId: string;
+  pulseEnabled: boolean;
 }>;
 
 type SettingsContextValue = Readonly<{
@@ -16,18 +18,31 @@ type SettingsContextValue = Readonly<{
   defaultDurationMinutes: number;
   centerDisplay: CenterDisplayMode;
   orbStyle: OrbStyle;
+  defaultSoundscapeId: string;
+  pulseEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
   setHapticsEnabled: (enabled: boolean) => void;
+  setVoiceEnabled: (enabled: boolean) => void;
+  setAmbientEnabled: (enabled: boolean) => void;
   setDefaultDurationMinutes: (minutes: number) => void;
   setCenterDisplay: (mode: CenterDisplayMode) => void;
   setOrbStyle: (style: OrbStyle) => void;
+  setDefaultSoundscapeId: (id: string) => void;
+  setPulseEnabled: (enabled: boolean) => void;
 }>;
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
-const DEFAULT_CUE: SessionCueSettings = { soundEnabled: true, hapticsEnabled: false };
+const DEFAULT_CUE: SessionCueSettings = {
+  soundEnabled: true,
+  hapticsEnabled: false,
+  voiceEnabled: false,
+  ambientEnabled: false,
+};
 const DEFAULT_CENTER: CenterDisplayMode = "phase_count";
 const DEFAULT_ORB: OrbStyle = "shader";
+const DEFAULT_SOUNDSCAPE_ID = "none";
+const DEFAULT_PULSE_ENABLED = false;
 
 export function isCenterDisplayMode(value: unknown): value is CenterDisplayMode {
   return value === "phase_count" || value === "phase" || value === "clean";
@@ -50,12 +65,24 @@ export function isStoredSettings(value: unknown): value is StoredSettings {
   );
 }
 
+// Миграция: старые записи без voiceEnabled/ambientEnabled получают дефолты.
+function migrateStoredCue(raw: SessionCueSettings): SessionCueSettings {
+  return {
+    soundEnabled: raw.soundEnabled,
+    hapticsEnabled: raw.hapticsEnabled,
+    voiceEnabled: raw.voiceEnabled ?? false,
+    ambientEnabled: raw.ambientEnabled ?? false,
+  };
+}
+
 export function SettingsProvider({ children }: PropsWithChildren) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [cueSettings, setCueSettings] = useState<SessionCueSettings>(DEFAULT_CUE);
   const [defaultDurationMinutes, setDefaultDurationMinutes] = useState(5);
   const [centerDisplay, setCenterDisplay] = useState<CenterDisplayMode>(DEFAULT_CENTER);
   const [orbStyle, setOrbStyle] = useState<OrbStyle>(DEFAULT_ORB);
+  const [defaultSoundscapeId, setDefaultSoundscapeId] = useState(DEFAULT_SOUNDSCAPE_ID);
+  const [pulseEnabled, setPulseEnabled] = useState(DEFAULT_PULSE_ENABLED);
 
   useEffect(() => {
     AsyncStorage.getItem(SETTINGS_KEY)
@@ -63,7 +90,7 @@ export function SettingsProvider({ children }: PropsWithChildren) {
         if (raw) {
           const parsed: unknown = JSON.parse(raw);
           if (isStoredSettings(parsed)) {
-            setCueSettings(parsed.cueSettings);
+            setCueSettings(migrateStoredCue(parsed.cueSettings));
             setDefaultDurationMinutes(parsed.defaultDurationMinutes);
           }
           // centerDisplay добавлен позже — старые записи без него мигрируют на дефолт.
@@ -76,6 +103,16 @@ export function SettingsProvider({ children }: PropsWithChildren) {
           if (isOrbStyle(orb)) {
             setOrbStyle(orb);
           }
+          // defaultSoundscapeId добавлен позже — старые записи без него мигрируют на "none".
+          const soundscapeId = (parsed as Record<string, unknown>)?.['defaultSoundscapeId'];
+          if (typeof soundscapeId === 'string' && soundscapeId.length > 0) {
+            setDefaultSoundscapeId(soundscapeId);
+          }
+          // pulseEnabled добавлен позже — старые записи без него мигрируют на false.
+          const pulse = (parsed as Record<string, unknown>)?.['pulseEnabled'];
+          if (typeof pulse === 'boolean') {
+            setPulseEnabled(pulse);
+          }
         }
       })
       .catch((e) => {
@@ -86,9 +123,9 @@ export function SettingsProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!isLoaded) return;
-    const data: StoredSettings = { cueSettings, defaultDurationMinutes, centerDisplay, orbStyle };
+    const data: StoredSettings = { cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled };
     AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(data)).catch(() => {});
-  }, [isLoaded, cueSettings, defaultDurationMinutes, centerDisplay, orbStyle]);
+  }, [isLoaded, cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled]);
 
   const value = useMemo<SettingsContextValue>(
     () => ({
@@ -96,15 +133,23 @@ export function SettingsProvider({ children }: PropsWithChildren) {
       defaultDurationMinutes,
       centerDisplay,
       orbStyle,
+      defaultSoundscapeId,
+      pulseEnabled,
       setSoundEnabled: (enabled) =>
         setCueSettings((current) => ({ ...current, soundEnabled: enabled })),
       setHapticsEnabled: (enabled) =>
         setCueSettings((current) => ({ ...current, hapticsEnabled: enabled })),
+      setVoiceEnabled: (enabled) =>
+        setCueSettings((current) => ({ ...current, voiceEnabled: enabled })),
+      setAmbientEnabled: (enabled) =>
+        setCueSettings((current) => ({ ...current, ambientEnabled: enabled })),
       setDefaultDurationMinutes,
       setCenterDisplay,
       setOrbStyle,
+      setDefaultSoundscapeId,
+      setPulseEnabled,
     }),
-    [cueSettings, defaultDurationMinutes, centerDisplay, orbStyle]
+    [cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

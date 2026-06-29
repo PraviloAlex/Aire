@@ -8,6 +8,7 @@ const EMPTY_STATS: ProgressStats = {
   topGoal: null,
   weekSessions: 0,
   isFirstTime: true,
+  currentStreak: 0,
 };
 
 export function useProgressStats(): { stats: ProgressStats; isLoading: boolean } {

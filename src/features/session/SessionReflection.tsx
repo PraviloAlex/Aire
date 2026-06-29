@@ -10,9 +10,12 @@ import {
   View,
 } from "react-native";
 import { getPracticeById } from "@/data/breathingPractices";
+import { getCardForGoal } from "@/data/learnArticles";
 import { RATING_ORDER, ratingFaces, reflectionTriggers } from "@/data/reflectionContent";
+import { PulseMeasureSheet } from "@/features/biofeedback/PulseMeasureSheet";
 import { ScreenBackground } from "@/features/common/ScreenBackground";
 import { pluralizeRu } from "@/features/common/pluralizeRu";
+import { useSettings } from "@/features/settings/SettingsContext";
 import { generateId, saveSessionRecord } from "@/storage/sessionStorage";
 import { sessionScreenTones } from "@/theme/gradients";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -25,12 +28,14 @@ type SessionReflectionProps = Readonly<{
   goal: BreathingGoal;
   practiceId: string;
   durationSeconds: number;
+  bpmBefore?: number;
   onRestart: () => void;
 }>;
 
-export function SessionReflection({ goal, practiceId, durationSeconds, onRestart }: SessionReflectionProps) {
+export function SessionReflection({ goal, practiceId, durationSeconds, bpmBefore, onRestart }: SessionReflectionProps) {
   const router = useRouter();
   const { colors, setMode } = useTheme();
+  const { pulseEnabled } = useSettings();
   const accent = stateColors[goal];
   const tones = sessionScreenTones[goal];
   const practice = getPracticeById(practiceId);
@@ -40,6 +45,8 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
   const [trigger, setTrigger] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [saveError, setSaveError] = useState(false);
+  const [bpmAfter, setBpmAfter] = useState<number | null>(null);
+  const [showAfterMeasure, setShowAfterMeasure] = useState(false);
   const isSavingRef = useRef(false);
 
   useEffect(() => {
@@ -61,13 +68,20 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
       completed: true,
       trigger: trigger ?? undefined,
       note: note.trim() || undefined,
+      bpmBefore,
+      bpmAfter: bpmAfter ?? undefined,
     });
     if (!ok) {
       isSavingRef.current = false;
       setSaveError(true);
       return;
     }
-    router.replace(PROGRESS_UPDATE_ROUTE);
+    const article = getCardForGoal(goal);
+    if (article) {
+      router.replace(`/card/${article.id}?goal=${goal}` as Href);
+    } else {
+      router.replace(PROGRESS_UPDATE_ROUTE);
+    }
   };
 
   const handleSkip = async () => {
@@ -82,6 +96,8 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
       completedAt: new Date().toISOString(),
       reflection: null,
       completed: true,
+      bpmBefore,
+      bpmAfter: bpmAfter ?? undefined,
     });
     if (!ok) {
       isSavingRef.current = false;
@@ -160,6 +176,53 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
           ) : null}
         </View>
 
+        {pulseEnabled && (
+          <View style={[styles.pulseBlock, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={styles.pulseSectionLabel}>ПУЛЬС</Text>
+            {bpmBefore != null && bpmAfter != null ? (
+              <View style={styles.pulseDeltaRow}>
+                <Text style={styles.pulseDeltaText}>
+                  {bpmBefore} → {bpmAfter} уд/мин
+                </Text>
+                <Text
+                  style={[
+                    styles.pulseDeltaChange,
+                    { color: bpmAfter < bpmBefore ? "#4FC3D4" : "#E57373" },
+                  ]}
+                >
+                  {bpmAfter < bpmBefore ? "▼" : "▲"} {Math.abs(bpmAfter - bpmBefore)}
+                </Text>
+              </View>
+            ) : bpmAfter != null ? (
+              <Text style={styles.pulseSingle}>{bpmAfter} уд/мин</Text>
+            ) : bpmBefore != null ? (
+              <View style={styles.pulseMeasureRow}>
+                <Text style={styles.pulseSingle}>До: {bpmBefore} уд/мин</Text>
+                <Pressable
+                  style={styles.measureBtn}
+                  onPress={() => setShowAfterMeasure(true)}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.measureBtnLabel, { color: accent }]}>
+                    Замерить после →
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.measureBtn}
+                onPress={() => setShowAfterMeasure(true)}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.measureBtnLabel, { color: accent }]}>
+                  Замерить пульс
+                </Text>
+              </Pressable>
+            )}
+            <Text style={styles.pulseDisclaimer}>Оценка, не медицинское измерение.</Text>
+          </View>
+        )}
+
         <Text style={styles.sectionLabel}>Что повлияло?</Text>
         <View style={styles.chipRow}>
           {reflectionTriggers.map((t) => {
@@ -231,6 +294,12 @@ export function SessionReflection({ goal, practiceId, durationSeconds, onRestart
           <Text style={styles.skipLabel}>Выбрать другое</Text>
         </Pressable>
       </ScrollView>
+
+      <PulseMeasureSheet
+        visible={showAfterMeasure}
+        onDone={(bpm) => { setBpmAfter(bpm); setShowAfterMeasure(false); }}
+        onClose={() => setShowAfterMeasure(false)}
+      />
     </ScreenBackground>
   );
 }
@@ -374,5 +443,56 @@ const styles = StyleSheet.create({
   restartLabel: {
     fontSize: typography.body,
     fontWeight: "700",
+  },
+  pulseBlock: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  pulseSectionLabel: {
+    color: "#8892A4",
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.4,
+  },
+  pulseDeltaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  pulseDeltaText: {
+    color: "#E8EAF0",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  pulseDeltaChange: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  pulseSingle: {
+    color: "#E8EAF0",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  pulseMeasureRow: {
+    gap: spacing.sm,
+  },
+  measureBtn: {
+    paddingVertical: 4,
+  },
+  measureBtnLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  pulseDisclaimer: {
+    color: "#8892A4",
+    fontSize: 11,
+    lineHeight: 15,
+    opacity: 0.75,
   },
 });

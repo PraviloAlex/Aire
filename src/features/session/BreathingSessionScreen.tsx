@@ -1,13 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
+import { PulseMeasureSheet } from "@/features/biofeedback/PulseMeasureSheet";
 import { ScreenBackground } from "@/features/common/ScreenBackground";
 import { BreathingOrb } from "@/features/session/BreathingOrb";
 import { ShaderOrb } from "@/features/session/orbShader/ShaderOrb";
 import { getPhaseHint } from "@/features/session/phaseHints";
 import { SessionProgressBar } from "@/features/session/SessionProgressBar";
 import { SessionReflection } from "@/features/session/SessionReflection";
+import { resolveSoundscape } from "@/features/session/soundscapeMix";
 import { getPhaseRemainingSeconds, useBreathingTimer } from "@/features/session/useBreathingTimer";
 import { useSessionAudioCues } from "@/features/session/useSessionAudioCues";
 import { useSessionHapticCues } from "@/features/session/useSessionHapticCues";
@@ -38,10 +40,19 @@ const phaseActionLabels: Record<BreathingPhaseName, string> = {
 
 export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps) {
   const router = useRouter();
-  const { cueSettings, centerDisplay, orbStyle } = useSettings();
+  const { cueSettings, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled } = useSettings();
   const { stateColors, setMode } = useTheme();
+  const [sessionSoundscapeId] = useState<string | null>(null);
+  const [bpmBefore, setBpmBefore] = useState<number | null>(null);
+  const [isPulseMeasureOpen, setIsPulseMeasureOpen] = useState(false);
   const timer = useBreathingTimer(practice.pattern);
-  const { cuePhaseChange } = useSessionAudioCues(cueSettings);
+
+  const resolvedSoundscape = useMemo(
+    () => resolveSoundscape(sessionSoundscapeId, defaultSoundscapeId, practice.goal),
+    [sessionSoundscapeId, defaultSoundscapeId, practice.goal]
+  );
+
+  const { cuePhaseChange } = useSessionAudioCues(cueSettings, resolvedSoundscape);
   const { cuePhaseChange: cueHapticPhaseChange } = useSessionHapticCues(cueSettings, practice.goal);
   const { isCompleted, isRunning, pause, reset, snapshot, start } = timer;
   const [prepRemaining, setPrepRemaining] = useState(PREP_SECONDS);
@@ -77,14 +88,21 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   }, [practice.id, reset]);
 
   useEffect(() => {
-    if (!isPreparing) {
+    if (!isPreparing || isPulseMeasureOpen) {
       return undefined;
     }
     const timeout = setTimeout(() => {
       setPrepRemaining((current) => Math.max(0, current - 1));
     }, 1000);
     return () => clearTimeout(timeout);
-  }, [isPreparing, prepRemaining]);
+  }, [isPreparing, prepRemaining, isPulseMeasureOpen]);
+
+  // Закрыть шит замера автоматически, если сессия уже стартовала
+  useEffect(() => {
+    if (!isPreparing) {
+      setIsPulseMeasureOpen(false);
+    }
+  }, [isPreparing]);
 
   useEffect(() => {
     if (prepRemaining === 0 && snapshot.status === "idle") {
@@ -188,6 +206,7 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
         goal={goal as BreathingGoal}
         practiceId={practice.id}
         durationSeconds={practice.durationSeconds}
+        bpmBefore={bpmBefore ?? undefined}
         onRestart={handleRestart}
       />
     );
@@ -195,6 +214,11 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
 
   return (
     <ScreenBackground id="sessionBg" top={tones.top} mid={tones.mid} base={tones.base}>
+      <PulseMeasureSheet
+        visible={isPulseMeasureOpen}
+        onDone={(bpm) => { setBpmBefore(bpm); setIsPulseMeasureOpen(false); }}
+        onClose={() => setIsPulseMeasureOpen(false)}
+      />
       <View style={styles.screen}>
         <View style={styles.topBar}>
           <Pressable
@@ -247,7 +271,22 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
         </TouchableWithoutFeedback>
 
         <View style={styles.bottom}>
-          {isPaused ? (
+          {isPreparing ? (
+            <View style={styles.prepControls}>
+              {pulseEnabled && (
+                <Pressable
+                  onPress={() => setIsPulseMeasureOpen(true)}
+                  style={styles.pulseChip}
+                  accessibilityRole="button"
+                  accessibilityLabel="Замерить пульс до сессии"
+                >
+                  <Text style={styles.pulseChipLabel}>
+                    {bpmBefore != null ? `♥ ${bpmBefore} уд/мин` : "♥ Замерить пульс"}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          ) : isPaused ? (
             <View style={styles.controlRow}>
               <View style={styles.controlItem}>
                 <Pressable
@@ -439,5 +478,23 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
     letterSpacing: 0.3,
+  },
+  prepControls: {
+    width: "100%",
+    gap: spacing.md,
+    alignItems: "center",
+  },
+  pulseChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  pulseChipLabel: {
+    color: "#8892A4",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

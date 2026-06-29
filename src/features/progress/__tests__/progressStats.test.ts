@@ -5,6 +5,7 @@ import {
   getHelpRate,
   getLastPracticeId,
   getPracticeUsageCounts,
+  nextMilestone,
 } from "@/features/progress/progressStats";
 import type { SessionRecord } from "@/types/breathing";
 
@@ -137,6 +138,74 @@ describe("getPracticeUsageCounts", () => {
       makeRecord({ id: "3", practiceId: "long-exhale" }),
     ];
     expect(getPracticeUsageCounts(records)).toEqual({ "box-breathing": 2, "long-exhale": 1 });
+  });
+});
+
+describe("computeProgressStats — currentStreak", () => {
+  function daysAgo(n: number): string {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - n);
+    return d.toISOString();
+  }
+
+  it("возвращает 0 при пустой истории", () => {
+    expect(computeProgressStats([]).currentStreak).toBe(0);
+  });
+
+  it("возвращает 1 если только сегодня", () => {
+    expect(computeProgressStats([makeRecord({ completedAt: daysAgo(0) })]).currentStreak).toBe(1);
+  });
+
+  it("считает серию 3 дня подряд", () => {
+    const records = [
+      makeRecord({ id: "a", completedAt: daysAgo(0) }),
+      makeRecord({ id: "b", completedAt: daysAgo(1) }),
+      makeRecord({ id: "c", completedAt: daysAgo(2) }),
+    ];
+    expect(computeProgressStats(records).currentStreak).toBe(3);
+  });
+
+  it("прерывает серию при пропуске дня", () => {
+    const records = [
+      makeRecord({ id: "a", completedAt: daysAgo(0) }),
+      makeRecord({ id: "b", completedAt: daysAgo(2) }),
+    ];
+    expect(computeProgressStats(records).currentStreak).toBe(1);
+  });
+
+  it("серия жива если сегодня ещё не было сессии но вчера была", () => {
+    const records = [
+      makeRecord({ id: "a", completedAt: daysAgo(1) }),
+      makeRecord({ id: "b", completedAt: daysAgo(2) }),
+    ];
+    expect(computeProgressStats(records).currentStreak).toBe(2);
+  });
+
+  it("не считает дубликаты в один день дважды", () => {
+    const records = [
+      makeRecord({ id: "a", completedAt: daysAgo(0) }),
+      makeRecord({ id: "b", completedAt: daysAgo(0) }),
+    ];
+    expect(computeProgressStats(records).currentStreak).toBe(1);
+  });
+});
+
+describe("nextMilestone", () => {
+  it("возвращает первую веху для streak=0", () => {
+    expect(nextMilestone(0)).toEqual({ target: 3, remaining: 3 });
+  });
+
+  it("возвращает следующую веху для streak=4", () => {
+    expect(nextMilestone(4)).toEqual({ target: 7, remaining: 3 });
+  });
+
+  it("возвращает null когда streak >= 30", () => {
+    expect(nextMilestone(30)).toBeNull();
+    expect(nextMilestone(50)).toBeNull();
+  });
+
+  it("корректно при streak=7", () => {
+    expect(nextMilestone(7)).toEqual({ target: 14, remaining: 7 });
   });
 });
 
