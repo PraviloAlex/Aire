@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { goalLabels } from "@/data/breathingPractices";
@@ -50,6 +50,7 @@ function rhythmLabel(seconds: CustomPhaseSeconds): string {
 
 export default function CustomPatternScreen() {
   const router = useRouter();
+  const { goal: goalParam } = useLocalSearchParams<{ goal?: string }>();
   const [seconds, setSeconds] = useState<CustomPhaseSeconds>(DEFAULT_CUSTOM_PATTERN.seconds);
   const [rounds, setRounds] = useState<number>(DEFAULT_CUSTOM_PATTERN.rounds);
   const [goal, setGoal] = useState<BreathingGoal>(DEFAULT_CUSTOM_PATTERN.goal);
@@ -63,7 +64,16 @@ export default function CustomPatternScreen() {
       const [list, draft] = await Promise.all([loadCustomPatterns(), loadCustomDraft()]);
       if (!active) return;
       setPresets(list);
-      if (draft) {
+      const seededGoal =
+        typeof goalParam === "string" && GOALS.includes(goalParam as BreathingGoal)
+          ? (goalParam as BreathingGoal)
+          : null;
+      if (seededGoal) {
+        const base = baseForGoal(seededGoal);
+        setGoal(seededGoal);
+        setSeconds(base.seconds);
+        setRounds(base.rounds);
+      } else if (draft) {
         setSeconds(draft.seconds);
         setRounds(draft.rounds);
         setGoal(draft.goal);
@@ -72,7 +82,7 @@ export default function CustomPatternScreen() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [goalParam]);
 
   const current: CustomPattern = { id: editingId ?? "draft", name, goal, rounds, seconds };
   const total = totalSeconds(current);

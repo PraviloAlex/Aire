@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { goalLabels } from "@/data/breathingPractices";
 import {
   clampSeconds,
   totalSeconds,
@@ -11,6 +12,9 @@ import {
 import { loadCustomPatterns } from "@/features/custom/customPatternStorage";
 import { editorial, editorialFont } from "@/theme/editorial";
 import { stateColors } from "@/theme/tokens";
+import type { BreathingGoal } from "@/types/breathing";
+
+const GOALS: readonly BreathingGoal[] = ["calm", "focus", "recover", "sleep", "fear", "pain", "irritation"];
 
 function formatTotal(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -26,7 +30,7 @@ function rhythmLabel(seconds: CustomPhaseSeconds): string {
     .join("·");
 }
 
-// Нижняя плашка-вход в «Свой ритм» + всплывающий лист с пресетами.
+// Нижняя плашка-вход в «Свой ритм» + всплывающий лист: состояния и сохранённые ритмы.
 export function CustomRhythmBar() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -44,6 +48,14 @@ export function CustomRhythmBar() {
     };
   }, [open]);
 
+  const openState = useCallback(
+    (goal: BreathingGoal) => {
+      setOpen(false);
+      router.push(`/custom?goal=${goal}`);
+    },
+    [router]
+  );
+
   const launchPreset = useCallback(
     (id: string) => {
       setOpen(false);
@@ -52,7 +64,7 @@ export function CustomRhythmBar() {
     [router]
   );
 
-  const configureNew = useCallback(() => {
+  const configureBlank = useCallback(() => {
     setOpen(false);
     router.push("/custom");
   }, [router]);
@@ -63,13 +75,13 @@ export function CustomRhythmBar() {
         <Pressable
           onPress={() => setOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel="Свой ритм: выбрать или настроить дыхание"
+          accessibilityLabel="Свой ритм: выбрать состояние или сохранённый ритм"
           style={({ pressed }) => [styles.bar, pressed ? styles.pressed : null]}
         >
           <View style={styles.barDot} />
           <View style={styles.barCopy}>
             <Text style={styles.barTitle}>Свой ритм</Text>
-            <Text style={styles.barSub}>Выбери или настрой своё дыхание</Text>
+            <Text style={styles.barSub}>Выбери состояние и дыши по-своему</Text>
           </View>
           <Ionicons name="chevron-up" size={18} color={editorial.clay} />
         </Pressable>
@@ -86,34 +98,49 @@ export function CustomRhythmBar() {
           <View style={styles.sheet}>
             <View style={styles.handle} />
             <Text style={styles.sheetTitle}>Свой ритм</Text>
-            <Text style={styles.sheetSub}>Запусти сохранённый ритм или настрой новый</Text>
+            <Text style={styles.sheetSub}>Выбери состояние — подставим базовый ритм, дальше подкрутишь под себя</Text>
+
+            <View style={styles.stateGrid}>
+              {GOALS.map((goal) => (
+                <Pressable
+                  key={goal}
+                  style={styles.stateChip}
+                  onPress={() => openState(goal)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${goalLabels[goal]}: открыть базовый ритм`}
+                >
+                  <View style={[styles.stateDot, { backgroundColor: stateColors[goal] }]} />
+                  <Text style={styles.stateLabel}>{goalLabels[goal]}</Text>
+                </Pressable>
+              ))}
+            </View>
 
             {presets.length > 0 ? (
-              <ScrollView style={styles.presetScroll} contentContainerStyle={styles.presetList} showsVerticalScrollIndicator={false}>
-                {presets.map((preset) => (
-                  <Pressable
-                    key={preset.id}
-                    style={styles.presetRow}
-                    onPress={() => launchPreset(preset.id)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Запустить ${preset.name || "ритм"}`}
-                  >
-                    <View style={[styles.presetDot, { backgroundColor: stateColors[preset.goal] }]} />
-                    <View style={styles.presetText}>
-                      <Text style={styles.presetName}>{preset.name.trim() || "Без названия"}</Text>
-                      <Text style={styles.presetMeta}>{rhythmLabel(preset.seconds)} · {formatTotal(totalSeconds(preset))}</Text>
-                    </View>
-                    <Ionicons name="play" size={18} color={editorial.clay} />
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : (
-              <Text style={styles.emptyHint}>Пока нет сохранённых ритмов — настрой первый.</Text>
-            )}
+              <>
+                <Text style={styles.eyebrow}>Мои ритмы</Text>
+                <ScrollView style={styles.presetScroll} contentContainerStyle={styles.presetList} showsVerticalScrollIndicator={false}>
+                  {presets.map((preset) => (
+                    <Pressable
+                      key={preset.id}
+                      style={styles.presetRow}
+                      onPress={() => launchPreset(preset.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Запустить ${preset.name || "ритм"}`}
+                    >
+                      <View style={[styles.presetDot, { backgroundColor: stateColors[preset.goal] }]} />
+                      <View style={styles.presetText}>
+                        <Text style={styles.presetName}>{preset.name.trim() || "Без названия"}</Text>
+                        <Text style={styles.presetMeta}>{rhythmLabel(preset.seconds)} · {formatTotal(totalSeconds(preset))}</Text>
+                      </View>
+                      <Ionicons name="play" size={18} color={editorial.clay} />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
 
-            <Pressable style={styles.primaryBtn} onPress={configureNew} accessibilityRole="button" accessibilityLabel="Настроить новый ритм">
-              <Ionicons name="add" size={18} color={editorial.paper} />
-              <Text style={styles.primaryLabel}>Настроить новый ритм</Text>
+            <Pressable style={styles.blankBtn} onPress={configureBlank} accessibilityRole="button" accessibilityLabel="Настроить с нуля">
+              <Text style={styles.blankLabel}>Настроить с нуля</Text>
             </Pressable>
           </View>
         </View>
@@ -164,8 +191,31 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sheetTitle: { fontFamily: editorialFont.serif, fontSize: 26, color: editorial.ink },
-  sheetSub: { fontFamily: editorialFont.sans, fontSize: 13, color: editorial.inkSoft, marginBottom: 6 },
-  presetScroll: { maxHeight: 260 },
+  sheetSub: { fontFamily: editorialFont.sans, fontSize: 13, color: editorial.inkSoft, marginBottom: 4, lineHeight: 18 },
+  stateGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  stateChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: editorial.paperRaised,
+    borderColor: editorial.hairline,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  stateDot: { width: 8, height: 8, borderRadius: 4 },
+  stateLabel: { fontFamily: editorialFont.sans, fontSize: 13, fontWeight: "600", color: editorial.ink },
+  eyebrow: {
+    fontFamily: editorialFont.sans,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    color: editorial.inkFaint,
+    marginTop: 8,
+  },
+  presetScroll: { maxHeight: 220 },
   presetList: { gap: 8, paddingBottom: 4 },
   presetRow: {
     flexDirection: "row",
@@ -180,16 +230,14 @@ const styles = StyleSheet.create({
   presetText: { flex: 1, gap: 2 },
   presetName: { fontFamily: editorialFont.serif, fontSize: 16, color: editorial.ink },
   presetMeta: { fontFamily: editorialFont.sans, fontSize: 12, color: editorial.inkSoft },
-  emptyHint: { fontFamily: editorialFont.sans, fontSize: 13, color: editorial.inkSoft, paddingVertical: 12 },
-  primaryBtn: {
-    flexDirection: "row",
+  blankBtn: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: editorial.clay,
+    minHeight: 48,
     borderRadius: 12,
-    minHeight: 54,
+    borderWidth: 1,
+    borderColor: editorial.hairline,
     marginTop: 6,
   },
-  primaryLabel: { fontFamily: editorialFont.sans, fontSize: 16, fontWeight: "700", color: editorial.paper },
+  blankLabel: { fontFamily: editorialFont.sans, fontSize: 15, fontWeight: "600", color: editorial.inkSoft },
 });
