@@ -2,9 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CustomRhythmBar } from "@/features/home/CustomRhythmBar";
 import { WaterRipple } from "@/features/common/WaterRipple";
 import { ContinueCard } from "@/features/home/ContinueCard";
-import { SosBar } from "@/features/home/SosBar";
 import { StateSelector } from "@/features/home/StateSelector";
 import { usePersonalization } from "@/features/home/usePersonalization";
 import { useProgressStats } from "@/features/progress/useProgressStats";
@@ -85,21 +85,8 @@ export default function TodayScreen() {
           <ContinueCard practiceId={lastPracticeId} />
         ) : null}
         <StateSelector />
-
-        <Pressable
-          style={styles.customLink}
-          onPress={() => router.push("/custom")}
-          accessibilityRole="button"
-          accessibilityLabel="Свой ритм: настроить своё дыхание"
-        >
-          <View style={styles.customLinkText}>
-            <Text style={styles.customLinkTitle}>Свой ритм</Text>
-            <Text style={styles.customLinkSub}>Настрой вдох, паузы и выдох под себя</Text>
-          </View>
-          <Ionicons name="arrow-forward" size={18} color={editorial.clay} />
-        </Pressable>
       </ScrollView>
-      <SosBar />
+      <CustomRhythmBar />
     </View>
   );
 }
@@ -203,27 +190,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     maxWidth: 230,
     zIndex: 1,
-  },
-  customLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 20,
-    paddingTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: editorial.hairline,
-  },
-  customLinkText: {
-    gap: 3,
-  },
-  customLinkTitle: {
-    fontFamily: editorialFont.serif,
-    fontSize: 22,
-    color: editorial.ink,
-  },
-  customLinkSub: {
-    fontFamily: editorialFont.sans,
-    fontSize: 13,
-    color: editorial.inkSoft,
   },
 });
