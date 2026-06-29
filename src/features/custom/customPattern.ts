@@ -116,3 +116,21 @@ export function buildCustomPractice(pattern: CustomPattern): BreathingPractice {
     pattern: { rounds, phases },
   };
 }
+
+/**
+ * Базовый ритм под каждое состояние — точка старта, которую пользователь
+ * докручивает под себя. Значения согласованы с ритмами практик на главной.
+ */
+export const BASE_RHYTHM_BY_GOAL: Readonly<Record<BreathingGoal, { seconds: CustomPhaseSeconds; rounds: number }>> = {
+  calm: { seconds: { inhale: 4, holdIn: 0, exhale: 6, holdOut: 0 }, rounds: 12 },
+  focus: { seconds: { inhale: 4, holdIn: 4, exhale: 4, holdOut: 4 }, rounds: 8 },
+  fear: { seconds: { inhale: 4, holdIn: 0, exhale: 8, holdOut: 0 }, rounds: 10 },
+  recover: { seconds: { inhale: 5, holdIn: 0, exhale: 7, holdOut: 0 }, rounds: 12 },
+  sleep: { seconds: { inhale: 4, holdIn: 0, exhale: 8, holdOut: 0 }, rounds: 12 },
+  pain: { seconds: { inhale: 4, holdIn: 0, exhale: 6, holdOut: 0 }, rounds: 12 },
+  irritation: { seconds: { inhale: 4, holdIn: 0, exhale: 6, holdOut: 0 }, rounds: 12 },
+};
+
+export function baseForGoal(goal: BreathingGoal): { seconds: CustomPhaseSeconds; rounds: number } {
+  return BASE_RHYTHM_BY_GOAL[goal];
+}

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { goalLabels } from "@/data/breathingPractices";
 import {
+  baseForGoal,
   clampRounds,
   clampSeconds,
   DEFAULT_CUSTOM_PATTERN,
@@ -84,6 +85,15 @@ export default function CustomPatternScreen() {
   const adjustRounds = useCallback((delta: number) => {
     setRounds((prev) => clampRounds(prev + delta));
   }, []);
+
+  const selectGoal = useCallback((nextGoal: BreathingGoal) => {
+    setGoal(nextGoal);
+    if (editingId === null) {
+      const base = baseForGoal(nextGoal);
+      setSeconds(base.seconds);
+      setRounds(base.rounds);
+    }
+  }, [editingId]);
 
   const handleStart = useCallback(async () => {
     if (!canPlay) return;
@@ -174,7 +184,7 @@ export default function CustomPatternScreen() {
             return (
               <Pressable
                 key={g}
-                onPress={() => setGoal(g)}
+                onPress={() => selectGoal(g)}
                 style={[styles.goalPill, isActive ? styles.goalPillActive : null]}
                 accessibilityRole="button"
                 accessibilityLabel={goalLabels[g]}
