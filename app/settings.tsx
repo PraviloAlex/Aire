@@ -6,7 +6,7 @@ import { WaterRipple } from "@/features/common/WaterRipple";
 import { useSettings } from "@/features/settings/SettingsContext";
 import { soundscapes } from "@/data/soundscapes";
 import { editorial, editorialFont } from "@/theme/editorial";
-import type { CenterDisplayMode, OrbStyle } from "@/types/breathing";
+import type { CenterDisplayMode, OrbStyle, SessionFont } from "@/types/breathing";
 
 const CENTER_OPTIONS: readonly { mode: CenterDisplayMode; label: string }[] = [
   { mode: "phase_count", label: "Фаза + счёт" },
@@ -17,6 +17,11 @@ const CENTER_OPTIONS: readonly { mode: CenterDisplayMode; label: string }[] = [
 const ORB_OPTIONS: readonly { style: OrbStyle; label: string }[] = [
   { style: "shader", label: "Шейдер" },
   { style: "classic", label: "Классический" },
+];
+
+const FONT_OPTIONS: readonly { font: SessionFont; label: string }[] = [
+  { font: "serif", label: "Серифный" },
+  { font: "sans", label: "Рубленый" },
 ];
 
 // Светлое превью орба: шейдер — мягкое «дыхание» кругами, классический — чёткое кольцо.
@@ -49,11 +54,13 @@ export default function SettingsScreen() {
     cueSettings,
     centerDisplay,
     orbStyle,
+    sessionFont,
     defaultDurationMinutes,
     defaultSoundscapeId,
     pulseEnabled,
     setCenterDisplay,
     setOrbStyle,
+    setSessionFont,
     setDefaultDurationMinutes,
     setHapticsEnabled,
     setSoundEnabled,
@@ -156,6 +163,26 @@ export default function SettingsScreen() {
                       centerDisplay === option.mode && styles.segmentLabelActive,
                     ]}
                   >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.settingTitle}>Шрифт в сессии</Text>
+            <Text style={styles.settingCopy}>Каким шрифтом писать фазы во время практики.</Text>
+            <View style={styles.segmentRow}>
+              {FONT_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.font}
+                  style={[styles.segmentButton, sessionFont === option.font && styles.segmentButtonActive]}
+                  onPress={() => setSessionFont(option.font)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: sessionFont === option.font }}
+                >
+                  <Text style={[styles.segmentLabel, sessionFont === option.font && styles.segmentLabelActive]}>
                     {option.label}
                   </Text>
                 </Pressable>

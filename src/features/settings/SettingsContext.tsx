@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useState } from "react";
-import type { CenterDisplayMode, OrbStyle, SessionCueSettings } from "@/types/breathing";
+import type { CenterDisplayMode, OrbStyle, SessionCueSettings, SessionFont } from "@/types/breathing";
 
 const SETTINGS_KEY = 'aire:settings';
 
@@ -9,6 +9,7 @@ type StoredSettings = Readonly<{
   defaultDurationMinutes: number;
   centerDisplay: CenterDisplayMode;
   orbStyle: OrbStyle;
+  sessionFont: SessionFont;
   defaultSoundscapeId: string;
   pulseEnabled: boolean;
 }>;
@@ -18,6 +19,7 @@ type SettingsContextValue = Readonly<{
   defaultDurationMinutes: number;
   centerDisplay: CenterDisplayMode;
   orbStyle: OrbStyle;
+  sessionFont: SessionFont;
   defaultSoundscapeId: string;
   pulseEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
@@ -27,6 +29,7 @@ type SettingsContextValue = Readonly<{
   setDefaultDurationMinutes: (minutes: number) => void;
   setCenterDisplay: (mode: CenterDisplayMode) => void;
   setOrbStyle: (style: OrbStyle) => void;
+  setSessionFont: (font: SessionFont) => void;
   setDefaultSoundscapeId: (id: string) => void;
   setPulseEnabled: (enabled: boolean) => void;
 }>;
@@ -41,6 +44,7 @@ const DEFAULT_CUE: SessionCueSettings = {
 };
 const DEFAULT_CENTER: CenterDisplayMode = "phase_count";
 const DEFAULT_ORB: OrbStyle = "shader";
+const DEFAULT_FONT: SessionFont = "serif";
 const DEFAULT_SOUNDSCAPE_ID = "none";
 const DEFAULT_PULSE_ENABLED = false;
 
@@ -50,6 +54,10 @@ export function isCenterDisplayMode(value: unknown): value is CenterDisplayMode 
 
 export function isOrbStyle(value: unknown): value is OrbStyle {
   return value === "shader" || value === "classic";
+}
+
+export function isSessionFont(value: unknown): value is SessionFont {
+  return value === "serif" || value === "sans";
 }
 
 export function isStoredSettings(value: unknown): value is StoredSettings {
@@ -81,6 +89,7 @@ export function SettingsProvider({ children }: PropsWithChildren) {
   const [defaultDurationMinutes, setDefaultDurationMinutes] = useState(5);
   const [centerDisplay, setCenterDisplay] = useState<CenterDisplayMode>(DEFAULT_CENTER);
   const [orbStyle, setOrbStyle] = useState<OrbStyle>(DEFAULT_ORB);
+  const [sessionFont, setSessionFont] = useState<SessionFont>(DEFAULT_FONT);
   const [defaultSoundscapeId, setDefaultSoundscapeId] = useState(DEFAULT_SOUNDSCAPE_ID);
   const [pulseEnabled, setPulseEnabled] = useState(DEFAULT_PULSE_ENABLED);
 
@@ -103,6 +112,11 @@ export function SettingsProvider({ children }: PropsWithChildren) {
           if (isOrbStyle(orb)) {
             setOrbStyle(orb);
           }
+          // sessionFont добавлен позже — старые записи без него мигрируют на serif.
+          const font = (parsed as Record<string, unknown>)?.['sessionFont'];
+          if (isSessionFont(font)) {
+            setSessionFont(font);
+          }
           // defaultSoundscapeId добавлен позже — старые записи без него мигрируют на "none".
           const soundscapeId = (parsed as Record<string, unknown>)?.['defaultSoundscapeId'];
           if (typeof soundscapeId === 'string' && soundscapeId.length > 0) {
@@ -123,9 +137,9 @@ export function SettingsProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!isLoaded) return;
-    const data: StoredSettings = { cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled };
+    const data: StoredSettings = { cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, sessionFont, defaultSoundscapeId, pulseEnabled };
     AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(data)).catch(() => {});
-  }, [isLoaded, cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled]);
+  }, [isLoaded, cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, sessionFont, defaultSoundscapeId, pulseEnabled]);
 
   const value = useMemo<SettingsContextValue>(
     () => ({
@@ -133,6 +147,7 @@ export function SettingsProvider({ children }: PropsWithChildren) {
       defaultDurationMinutes,
       centerDisplay,
       orbStyle,
+      sessionFont,
       defaultSoundscapeId,
       pulseEnabled,
       setSoundEnabled: (enabled) =>
@@ -146,10 +161,11 @@ export function SettingsProvider({ children }: PropsWithChildren) {
       setDefaultDurationMinutes,
       setCenterDisplay,
       setOrbStyle,
+      setSessionFont,
       setDefaultSoundscapeId,
       setPulseEnabled,
     }),
-    [cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled]
+    [cueSettings, defaultDurationMinutes, centerDisplay, orbStyle, sessionFont, defaultSoundscapeId, pulseEnabled]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

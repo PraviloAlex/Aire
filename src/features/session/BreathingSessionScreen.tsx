@@ -18,6 +18,7 @@ import { useSessionPulse } from "@/features/session/useSessionPulse";
 import { useTapHintAnimation } from "@/features/session/useTapHintAnimation";
 import { useSettings } from "@/features/settings/SettingsContext";
 import { generateId, saveSessionRecord } from "@/storage/sessionStorage";
+import { editorialFont } from "@/theme/editorial";
 import { sessionScreenTones } from "@/theme/gradients";
 import { useTheme } from "@/theme/ThemeProvider";
 import { fontFamily, radius, spacing } from "@/theme/tokens";
@@ -43,7 +44,8 @@ const phaseActionLabels: Record<BreathingPhaseName, string> = {
 
 export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps) {
   const router = useRouter();
-  const { cueSettings, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled } = useSettings();
+  const { cueSettings, centerDisplay, orbStyle, sessionFont, defaultSoundscapeId, pulseEnabled } = useSettings();
+  const phaseFontFamily = sessionFont === "serif" ? editorialFont.serif : fontFamily.display;
   const { stateColors, setMode } = useTheme();
   const [sessionSoundscapeId] = useState<string | null>(null);
   const timer = useBreathingTimer(practice.pattern);
@@ -210,9 +212,9 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
                   style={[styles.centerText, { opacity: textOpacity, transform: [{ scale: textScale }] }]}
                   pointerEvents="none"
                 >
-                  <Text style={styles.verb}>{instructionLabel}</Text>
+                  <Text style={[styles.verb, { fontFamily: phaseFontFamily }]}>{instructionLabel}</Text>
                   {centerDisplay === "phase_count" ? (
-                    <Text style={styles.sec}>{instructionSeconds}</Text>
+                    <Text style={[styles.sec, { fontFamily: phaseFontFamily }]}>{instructionSeconds}</Text>
                   ) : null}
                 </Animated.View>
               ) : null}

@@ -62,6 +62,9 @@ export type CenterDisplayMode = "phase_count" | "phase" | "clean";
 // Какой орб рендерить во время сессии: шейдерный (web WebGL) или классический.
 export type OrbStyle = "shader" | "classic";
 
+// Шрифт слов фаз в сессии: сериф (как на главной) или текущий рубленый.
+export type SessionFont = "serif" | "sans";
+
 export type TimerSnapshot = Readonly<{
   status: SessionStatus;
   phaseIndex: number;
