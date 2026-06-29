@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Toggle } from "@/features/common/Toggle";
 import { WaterRipple } from "@/features/common/WaterRipple";
 import { useSettings } from "@/features/settings/SettingsContext";
 import { soundscapes } from "@/data/soundscapes";
@@ -71,7 +72,6 @@ export default function SettingsScreen() {
   } = useSettings();
 
   const orbLabel = ORB_OPTIONS.find((option) => option.style === orbStyle)?.label ?? "";
-  const switchTrack = { false: editorial.hairline, true: editorial.clay };
 
   return (
     <View style={styles.root}>
@@ -229,13 +229,7 @@ export default function SettingsScreen() {
                 <Text style={styles.settingTitle}>Звуковые сигналы</Text>
                 <Text style={styles.settingCopy}>Мягкий сигнал при смене фазы.</Text>
               </View>
-              <Switch
-                value={cueSettings.soundEnabled}
-                onValueChange={setSoundEnabled}
-                trackColor={switchTrack}
-                thumbColor={editorial.paperRaised}
-                ios_backgroundColor={editorial.hairline}
-              />
+              <Toggle value={cueSettings.soundEnabled} onValueChange={setSoundEnabled} />
             </View>
 
             <View style={styles.groupDivider} />
@@ -245,13 +239,7 @@ export default function SettingsScreen() {
                 <Text style={styles.settingTitle}>Вибрация</Text>
                 <Text style={styles.settingCopy}>Тактильные сигналы фаз (кроме сна).</Text>
               </View>
-              <Switch
-                value={cueSettings.hapticsEnabled}
-                onValueChange={setHapticsEnabled}
-                trackColor={switchTrack}
-                thumbColor={editorial.paperRaised}
-                ios_backgroundColor={editorial.hairline}
-              />
+              <Toggle value={cueSettings.hapticsEnabled} onValueChange={setHapticsEnabled} />
             </View>
 
             <View style={styles.groupDivider} />
@@ -261,13 +249,7 @@ export default function SettingsScreen() {
                 <Text style={styles.settingTitle}>Голосовое ведение</Text>
                 <Text style={styles.settingCopy}>Голос называет фазу — можно закрыть глаза.</Text>
               </View>
-              <Switch
-                value={cueSettings.voiceEnabled}
-                onValueChange={setVoiceEnabled}
-                trackColor={switchTrack}
-                thumbColor={editorial.paperRaised}
-                ios_backgroundColor={editorial.hairline}
-              />
+              <Toggle value={cueSettings.voiceEnabled} onValueChange={setVoiceEnabled} />
             </View>
 
             <View style={styles.groupDivider} />
@@ -277,13 +259,7 @@ export default function SettingsScreen() {
                 <Text style={styles.settingTitle}>Фоновый звук</Text>
                 <Text style={styles.settingCopy}>Мягкий эмбиент на время практики.</Text>
               </View>
-              <Switch
-                value={cueSettings.ambientEnabled}
-                onValueChange={setAmbientEnabled}
-                trackColor={switchTrack}
-                thumbColor={editorial.paperRaised}
-                ios_backgroundColor={editorial.hairline}
-              />
+              <Toggle value={cueSettings.ambientEnabled} onValueChange={setAmbientEnabled} />
             </View>
           </View>
         </View>
@@ -335,13 +311,7 @@ export default function SettingsScreen() {
                   Оценка ЧСС по камере до и после практики.
                 </Text>
               </View>
-              <Switch
-                value={pulseEnabled}
-                onValueChange={setPulseEnabled}
-                trackColor={switchTrack}
-                thumbColor={editorial.paperRaised}
-                ios_backgroundColor={editorial.hairline}
-              />
+              <Toggle value={pulseEnabled} onValueChange={setPulseEnabled} />
             </View>
           </View>
           {pulseEnabled && (
