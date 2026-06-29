@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
 import { PulseMeasureSheet } from "@/features/biofeedback/PulseMeasureSheet";
 import { ScreenBackground } from "@/features/common/ScreenBackground";
 import { BreathingOrb } from "@/features/session/BreathingOrb";
@@ -10,9 +10,12 @@ import { getPhaseHint } from "@/features/session/phaseHints";
 import { SessionProgressBar } from "@/features/session/SessionProgressBar";
 import { SessionReflection } from "@/features/session/SessionReflection";
 import { resolveSoundscape } from "@/features/session/soundscapeMix";
+import { usePhaseTextAnimation } from "@/features/session/usePhaseTextAnimation";
 import { getPhaseRemainingSeconds, useBreathingTimer } from "@/features/session/useBreathingTimer";
 import { useSessionAudioCues } from "@/features/session/useSessionAudioCues";
 import { useSessionHapticCues } from "@/features/session/useSessionHapticCues";
+import { useSessionPulse } from "@/features/session/useSessionPulse";
+import { useTapHintAnimation } from "@/features/session/useTapHintAnimation";
 import { useSettings } from "@/features/settings/SettingsContext";
 import { generateId, saveSessionRecord } from "@/storage/sessionStorage";
 import { sessionScreenTones } from "@/theme/gradients";
@@ -43,8 +46,6 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const { cueSettings, centerDisplay, orbStyle, defaultSoundscapeId, pulseEnabled } = useSettings();
   const { stateColors, setMode } = useTheme();
   const [sessionSoundscapeId] = useState<string | null>(null);
-  const [bpmBefore, setBpmBefore] = useState<number | null>(null);
-  const [isPulseMeasureOpen, setIsPulseMeasureOpen] = useState(false);
   const timer = useBreathingTimer(practice.pattern);
 
   const resolvedSoundscape = useMemo(
@@ -58,13 +59,6 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const [prepRemaining, setPrepRemaining] = useState(PREP_SECONDS);
   const elapsedRef = useRef(0);
   elapsedRef.current = snapshot.totalElapsedSeconds;
-  const textScale = useRef(new Animated.Value(1)).current;
-  const textOpacity = useRef(new Animated.Value(1)).current;
-  const textAnimRef = useRef<Animated.CompositeAnimation | null>(null);
-  const textFadeRef = useRef<Animated.CompositeAnimation | null>(null);
-  const hintOpacity = useRef(new Animated.Value(0)).current;
-  const hintAnimRef = useRef<Animated.CompositeAnimation | null>(null);
-  const hintShownRef = useRef(false);
   const phaseKey = `${snapshot.roundIndex}-${snapshot.phaseIndex}`;
   const goal = practice.goal;
   const accent = stateColors[goal];
@@ -82,6 +76,16 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const remainingValue = isPreparing ? practice.durationSeconds : snapshot.totalRemainingSeconds;
   const phaseHint = isPreparing ? undefined : getPhaseHint(goal, currentPhaseName);
 
+  const { bpmBefore, isPulseMeasureOpen, openPulseMeasure, closePulseMeasure, completePulseMeasure } =
+    useSessionPulse({ isPreparing });
+  const { textScale, textOpacity } = usePhaseTextAnimation({
+    isPreparing,
+    phaseKey,
+    currentPhaseName,
+    currentPhaseDurationSeconds: currentPhaseDuration,
+  });
+  const { hintOpacity, hideHint } = useTapHintAnimation({ isRunning, isPreparing });
+
   useEffect(() => {
     setPrepRemaining(PREP_SECONDS);
     reset();
@@ -96,13 +100,6 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
     }, 1000);
     return () => clearTimeout(timeout);
   }, [isPreparing, prepRemaining, isPulseMeasureOpen]);
-
-  // Закрыть шит замера автоматически, если сессия уже стартовала
-  useEffect(() => {
-    if (!isPreparing) {
-      setIsPulseMeasureOpen(false);
-    }
-  }, [isPreparing]);
 
   useEffect(() => {
     if (prepRemaining === 0 && snapshot.status === "idle") {
@@ -122,52 +119,6 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
     return () => setMode("default");
   }, [goal, setMode]);
 
-  useEffect(() => {
-    if (isPreparing) return;
-    const toValue =
-      currentPhaseName === "inhale" || currentPhaseName === "sigh" || currentPhaseName === "hold"
-        ? 1.02
-        : 0.98;
-    textAnimRef.current?.stop();
-    textAnimRef.current = Animated.timing(textScale, {
-      toValue,
-      duration: currentPhaseDuration * 1000,
-      easing: Easing.inOut(Easing.ease),
-      useNativeDriver: true,
-    });
-    textAnimRef.current.start();
-
-    // Crossfade: текст новой фазы мягко проявляется (~300ms), орб не трогаем.
-    textFadeRef.current?.stop();
-    textOpacity.setValue(0);
-    textFadeRef.current = Animated.timing(textOpacity, {
-      toValue: 1,
-      duration: 300,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    });
-    textFadeRef.current.start();
-  }, [phaseKey, isPreparing, currentPhaseName, currentPhaseDuration, textScale, textOpacity]);
-
-  // Разовый хинт «коснись, чтобы пауза» — показываем один раз в начале и плавно гасим.
-  useEffect(() => {
-    if (isRunning && !isPreparing && !hintShownRef.current) {
-      hintShownRef.current = true;
-      hintOpacity.setValue(1);
-      hintAnimRef.current = Animated.sequence([
-        Animated.delay(3200),
-        Animated.timing(hintOpacity, {
-          toValue: 0,
-          duration: 700,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]);
-      hintAnimRef.current.start();
-    }
-    return () => hintAnimRef.current?.stop();
-  }, [isRunning, isPreparing, hintOpacity]);
-
   const handleRestart = useCallback(() => {
     reset();
     setPrepRemaining(PREP_SECONDS);
@@ -176,12 +127,12 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
   const handlePrimaryPress = useCallback(() => {
     if (isPreparing) return;
     if (isRunning) {
-      hintOpacity.setValue(0);
+      hideHint();
       pause();
       return;
     }
     start();
-  }, [isPreparing, isRunning, pause, start, hintOpacity]);
+  }, [isPreparing, isRunning, pause, start, hideHint]);
 
   const handleStop = useCallback(() => {
     const elapsed = elapsedRef.current;
@@ -216,8 +167,8 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
     <ScreenBackground id="sessionBg" top={tones.top} mid={tones.mid} base={tones.base}>
       <PulseMeasureSheet
         visible={isPulseMeasureOpen}
-        onDone={(bpm) => { setBpmBefore(bpm); setIsPulseMeasureOpen(false); }}
-        onClose={() => setIsPulseMeasureOpen(false)}
+        onDone={completePulseMeasure}
+        onClose={closePulseMeasure}
       />
       <View style={styles.screen}>
         <View style={styles.topBar}>
@@ -275,7 +226,7 @@ export function BreathingSessionScreen({ practice }: BreathingSessionScreenProps
             <View style={styles.prepControls}>
               {pulseEnabled && (
                 <Pressable
-                  onPress={() => setIsPulseMeasureOpen(true)}
+                  onPress={openPulseMeasure}
                   style={styles.pulseChip}
                   accessibilityRole="button"
                   accessibilityLabel="Замерить пульс до сессии"
