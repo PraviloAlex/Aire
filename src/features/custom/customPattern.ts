@@ -20,6 +20,8 @@ export type CustomPattern = Readonly<{
   goal: BreathingGoal;
   rounds: number;
   seconds: CustomPhaseSeconds;
+  updatedAt?: string;
+  deletedAt?: string | null;
 }>;
 
 export const PHASE_MIN_SECONDS = 0;

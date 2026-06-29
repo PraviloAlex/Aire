@@ -21,4 +21,5 @@ export type ProgramProgress = Readonly<{
   programId: string;
   startedAt: string;
   completedDays: readonly number[];
+  updatedAt?: string;
 }>;

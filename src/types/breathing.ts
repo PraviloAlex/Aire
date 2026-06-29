@@ -105,4 +105,6 @@ export type SessionRecord = Readonly<{
   note?: string;
   bpmBefore?: number;
   bpmAfter?: number;
+  updatedAt?: string;
+  deletedAt?: string | null;
 }>;

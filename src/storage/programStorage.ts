@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { ProgramProgress } from "@/types/program";
+import { nowIso, type SingletonRepository } from "@/data/repository";
 
 const PROGRAM_KEY = "aire:active_program";
 
@@ -27,7 +28,7 @@ export async function loadActiveProgram(): Promise<ProgramProgress | null> {
 
 export async function saveActiveProgram(progress: ProgramProgress): Promise<void> {
   try {
-    await AsyncStorage.setItem(PROGRAM_KEY, JSON.stringify(progress));
+    await AsyncStorage.setItem(PROGRAM_KEY, JSON.stringify({ ...progress, updatedAt: nowIso() }));
   } catch {
     // Storage errors are non-fatal
   }
@@ -64,3 +65,9 @@ export async function clearActiveProgram(): Promise<void> {
     // non-fatal
   }
 }
+
+// Repository-обёртка над активной программой (одиночное значение).
+export const programRepository: SingletonRepository<ProgramProgress> = {
+  get: () => loadActiveProgram(),
+  set: (progress) => saveActiveProgram(progress),
+};

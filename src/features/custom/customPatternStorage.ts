@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { BreathingGoal } from "@/types/breathing";
 import { clampRounds, clampSeconds, type CustomPattern } from "@/features/custom/customPattern";
+import { nowIso, type Repository } from "@/data/repository";
 
 const PRESETS_KEY = "aire:custom_patterns";
 const DRAFT_KEY = "aire:custom_draft";
@@ -48,6 +49,8 @@ export function parseCustomPattern(value: unknown): CustomPattern | null {
       exhale: clampSeconds(numberOr(seconds.exhale)),
       holdOut: clampSeconds(numberOr(seconds.holdOut)),
     },
+    updatedAt: typeof v.updatedAt === "string" ? v.updatedAt : undefined,
+    deletedAt: typeof v.deletedAt === "string" ? v.deletedAt : undefined,
   };
 }
 
@@ -70,10 +73,11 @@ async function writePatterns(list: readonly CustomPattern[]): Promise<void> {
 /** Добавить новый или обновить существующий пресет (по id). Возвращает новый список. */
 export async function saveCustomPattern(pattern: CustomPattern): Promise<readonly CustomPattern[]> {
   const existing = await loadCustomPatterns();
+  const stamped: CustomPattern = { ...pattern, updatedAt: nowIso() };
   const index = existing.findIndex((p) => p.id === pattern.id);
   const next = index >= 0
-    ? existing.map((p) => (p.id === pattern.id ? pattern : p))
-    : [pattern, ...existing];
+    ? existing.map((p) => (p.id === pattern.id ? stamped : p))
+    : [stamped, ...existing];
   try {
     await writePatterns(next);
   } catch {
@@ -116,3 +120,12 @@ export async function loadCustomDraft(): Promise<CustomPattern | null> {
     return null;
   }
 }
+
+// Адаптер к общему интерфейсу Repository (готовность к синхрону). Экраны могут
+// постепенно переходить на него; существующие функции выше остаются.
+export const customPatternRepository: Repository<CustomPattern> = {
+  list: () => loadCustomPatterns(),
+  get: (id) => getCustomPatternById(id),
+  upsert: (pattern) => saveCustomPattern(pattern),
+  remove: (id) => deleteCustomPattern(id),
+};
