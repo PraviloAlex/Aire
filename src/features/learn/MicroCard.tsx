@@ -1,5 +1,5 @@
-import { Link, type Href } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter, type Href } from "expo-router";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { editorial, editorialFont } from "@/theme/editorial";
 import type { LearnArticle } from "@/types/breathing";
 
@@ -7,23 +7,27 @@ type MicroCardProps = Readonly<{
   article: LearnArticle;
 }>;
 
+const webShadow =
+  Platform.OS === "web" ? ({ boxShadow: "0 4px 16px rgba(33,29,24,0.08)" } as object) : undefined;
+
 export function MicroCard({ article }: MicroCardProps) {
+  const router = useRouter();
+
   return (
-    <Link href={`/card/${article.id}` as Href} asChild>
-      <Pressable
-        style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
-        accessibilityRole="link"
-        accessibilityLabel={article.title}
-      >
-        <View style={styles.metaRow}>
-          <View style={styles.dot} />
-          <Text style={styles.category}>{article.category.toUpperCase()}</Text>
-          <Text style={styles.readingTime}>{article.readingTime}</Text>
-        </View>
-        <Text style={styles.title}>{article.title}</Text>
-        <Text style={styles.body} numberOfLines={2}>{article.body}</Text>
-      </Pressable>
-    </Link>
+    <Pressable
+      style={({ pressed }) => [styles.card, webShadow, pressed ? styles.pressed : null]}
+      onPress={() => router.push(`/card/${article.id}` as Href)}
+      accessibilityRole="button"
+      accessibilityLabel={article.title}
+    >
+      <View style={styles.metaRow}>
+        <View style={styles.dot} />
+        <Text style={styles.category}>{article.category.toUpperCase()}</Text>
+        <Text style={styles.readingTime}>{article.readingTime}</Text>
+      </View>
+      <Text style={styles.title}>{article.title}</Text>
+      <Text style={styles.body} numberOfLines={2}>{article.body}</Text>
+    </Pressable>
   );
 }
 
