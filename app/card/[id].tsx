@@ -1,24 +1,18 @@
 import { Link, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { getArticleById } from "@/data/learnArticles";
-import { colors, radius, spacing, stateColors, typography } from "@/theme/tokens";
-import type { BreathingGoal } from "@/types/breathing";
-
-function isValidGoal(g: string | undefined): g is BreathingGoal {
-  return g !== undefined && g in stateColors;
-}
+import { editorial, editorialFont } from "@/theme/editorial";
 
 export default function CardRoute() {
-  const { id, goal } = useLocalSearchParams<{ id: string; goal?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const article = getArticleById(id);
-  const accent = isValidGoal(goal) ? stateColors[goal] : colors.focus;
 
   if (!article) {
     return (
       <View style={styles.emptyScreen}>
         <Text style={styles.emptyTitle}>Карточка не найдена</Text>
         <Link href="/" asChild>
-          <Pressable style={[styles.homeButton, { backgroundColor: colors.focus }]}>
+          <Pressable style={styles.homeButton}>
             <Text style={styles.homeButtonText}>На главный</Text>
           </Pressable>
         </Link>
@@ -29,18 +23,18 @@ export default function CardRoute() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={[styles.category, { color: accent }]}>
+        <Text style={styles.category}>
           {article.category.toUpperCase()} · {article.readingTime.toUpperCase()}
         </Text>
         <Text style={styles.title}>{article.title}</Text>
       </View>
 
-      <View style={[styles.divider, { backgroundColor: accent }]} />
+      <View style={styles.divider} />
 
       <Text style={styles.body}>{article.body}</Text>
 
       <Link href="/" asChild replace>
-        <Pressable style={[styles.homeButton, { backgroundColor: accent }]}>
+        <Pressable style={styles.homeButton}>
           <Text style={styles.homeButtonText}>На главный</Text>
         </Pressable>
       </Link>
@@ -49,63 +43,22 @@ export default function CardRoute() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    gap: spacing.xl,
-    padding: spacing.xl,
-    paddingBottom: 80,
-    paddingTop: spacing.xxl,
-  },
-  emptyScreen: {
-    flex: 1,
-    justifyContent: "center",
-    gap: spacing.lg,
-    padding: spacing.xl,
-    backgroundColor: colors.background,
-  },
-  emptyTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "900",
-  },
-  header: {
-    gap: spacing.md,
-  },
-  category: {
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-  },
-  title: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "900",
-    lineHeight: 40,
-  },
-  divider: {
-    height: 2,
-    width: 40,
-    borderRadius: 1,
-    opacity: 0.6,
-  },
-  body: {
-    color: colors.text,
-    fontSize: typography.body,
-    lineHeight: 28,
-  },
+  screen: { flex: 1, backgroundColor: editorial.paper },
+  content: { gap: 20, padding: 24, paddingBottom: 80, paddingTop: 40 },
+  emptyScreen: { flex: 1, justifyContent: "center", gap: 16, padding: 24, backgroundColor: editorial.paper },
+  emptyTitle: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 26 },
+  header: { gap: 12 },
+  category: { color: editorial.clay, fontSize: 12, fontWeight: "700", letterSpacing: 1.5 },
+  title: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 32, lineHeight: 38 },
+  divider: { height: 2, width: 40, borderRadius: 1, backgroundColor: editorial.clay, opacity: 0.7 },
+  body: { fontFamily: editorialFont.sans, color: editorial.ink, fontSize: 15, lineHeight: 26 },
   homeButton: {
-    minHeight: 54,
+    minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: radius.md,
-    marginTop: spacing.md,
+    borderRadius: 12,
+    backgroundColor: editorial.clay,
+    marginTop: 8,
   },
-  homeButtonText: {
-    color: colors.background,
-    fontSize: 16,
-    fontWeight: "900",
-  },
+  homeButtonText: { color: editorial.paper, fontSize: 15, fontWeight: "700" },
 });

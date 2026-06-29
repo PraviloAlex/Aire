@@ -46,7 +46,12 @@ export default function TodayScreen() {
         <View style={styles.topRow}>
           <Text style={styles.eyebrow}>{eyebrow}</Text>
           <View style={styles.topRight}>
-          <View style={styles.streakGroup}>
+          <Pressable
+            style={styles.streakGroup}
+            onPress={() => router.push("/progress")}
+            accessibilityRole="button"
+            accessibilityLabel="Прогресс"
+          >
             <View style={styles.streak}>
               <View style={styles.streakDot} />
               <Text style={styles.streakNum}>{streak > 0 ? String(streak) : "—"}</Text>
@@ -55,7 +60,7 @@ export default function TodayScreen() {
             {milestone !== null && streak > 0 ? (
               <Text style={styles.streakHint}>ещё {milestone.remaining} до {milestone.target}</Text>
             ) : null}
-          </View>
+          </Pressable>
           <Pressable
             onPress={() => router.push("/settings")}
             style={styles.settingsBtn}
@@ -85,6 +90,20 @@ export default function TodayScreen() {
           <ContinueCard practiceId={lastPracticeId} />
         ) : null}
         <StateSelector />
+
+        <View style={styles.footerNav}>
+          <Pressable onPress={() => router.push("/practices")} accessibilityRole="button" accessibilityLabel="Практики">
+            <Text style={styles.footerLink}>Практики</Text>
+          </Pressable>
+          <Text style={styles.footerDot}>·</Text>
+          <Pressable onPress={() => router.push("/learn")} accessibilityRole="button" accessibilityLabel="Обучение">
+            <Text style={styles.footerLink}>Обучение</Text>
+          </Pressable>
+          <Text style={styles.footerDot}>·</Text>
+          <Pressable onPress={() => router.push("/progress")} accessibilityRole="button" accessibilityLabel="Прогресс">
+            <Text style={styles.footerLink}>Прогресс</Text>
+          </Pressable>
+        </View>
       </ScrollView>
       <CustomRhythmBar />
     </View>
@@ -191,4 +210,18 @@ const styles = StyleSheet.create({
     maxWidth: 230,
     zIndex: 1,
   },
+  footerNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 28,
+  },
+  footerLink: {
+    fontFamily: editorialFont.sans,
+    fontSize: 13,
+    fontWeight: "600",
+    color: editorial.inkSoft,
+  },
+  footerDot: { color: editorial.inkFaint, fontSize: 13 },
 });
