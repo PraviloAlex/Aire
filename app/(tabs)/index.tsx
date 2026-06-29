@@ -85,6 +85,19 @@ export default function TodayScreen() {
           <ContinueCard practiceId={lastPracticeId} />
         ) : null}
         <StateSelector />
+
+        <Pressable
+          style={styles.customLink}
+          onPress={() => router.push("/custom")}
+          accessibilityRole="button"
+          accessibilityLabel="Свой ритм: настроить своё дыхание"
+        >
+          <View style={styles.customLinkText}>
+            <Text style={styles.customLinkTitle}>Свой ритм</Text>
+            <Text style={styles.customLinkSub}>Настрой вдох, паузы и выдох под себя</Text>
+          </View>
+          <Ionicons name="arrow-forward" size={18} color={editorial.clay} />
+        </Pressable>
       </ScrollView>
       <SosBar />
     </View>
@@ -190,5 +203,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     maxWidth: 230,
     zIndex: 1,
+  },
+  customLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 20,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: editorial.hairline,
+  },
+  customLinkText: {
+    gap: 3,
+  },
+  customLinkTitle: {
+    fontFamily: editorialFont.serif,
+    fontSize: 22,
+    color: editorial.ink,
+  },
+  customLinkSub: {
+    fontFamily: editorialFont.sans,
+    fontSize: 13,
+    color: editorial.inkSoft,
   },
 });
