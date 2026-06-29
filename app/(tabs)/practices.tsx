@@ -22,12 +22,12 @@ export default function PracticesScreen() {
         </View>
 
         <Link href="/custom" asChild>
-          <Pressable style={styles.customCard} accessibilityRole="button" accessibilityLabel="Свой паттерн дыхания">
+          <Pressable style={styles.customCard} accessibilityRole="button" accessibilityLabel="Свой ритм">
             <View style={styles.customIcon}>
               <Ionicons name="add" size={20} color="#06121F" />
             </View>
             <View style={styles.customTextWrap}>
-              <Text style={styles.customTitle}>Свой паттерн</Text>
+              <Text style={styles.customTitle}>Свой ритм</Text>
               <Text style={styles.customSub}>Настройте вдох, выдох и задержки под себя</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

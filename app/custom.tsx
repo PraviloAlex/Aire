@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { goalLabels } from "@/data/breathingPractices";
-import { ScreenBackground } from "@/features/common/ScreenBackground";
 import {
   clampRounds,
   clampSeconds,
@@ -21,15 +20,15 @@ import {
   saveCustomDraft,
   saveCustomPattern,
 } from "@/features/custom/customPatternStorage";
-import { homeScreenTones } from "@/theme/gradients";
-import { colors, fontFamily, radius, spacing, stateColors } from "@/theme/tokens";
+import { editorial, editorialFont } from "@/theme/editorial";
+import { stateColors } from "@/theme/tokens";
 import type { BreathingGoal } from "@/types/breathing";
 
 const PHASE_ROWS: readonly { key: keyof CustomPhaseSeconds; label: string }[] = [
   { key: "inhale", label: "Вдох" },
-  { key: "holdIn", label: "Задержка после вдоха" },
+  { key: "holdIn", label: "Пауза" },
   { key: "exhale", label: "Выдох" },
-  { key: "holdOut", label: "Задержка после выдоха" },
+  { key: "holdOut", label: "Пауза" },
 ];
 
 const GOALS: readonly BreathingGoal[] = ["calm", "focus", "recover", "sleep", "fear", "pain", "irritation"];
@@ -45,7 +44,7 @@ function formatTotal(seconds: number): string {
 function rhythmLabel(seconds: CustomPhaseSeconds): string {
   return [seconds.inhale, seconds.holdIn, seconds.exhale, seconds.holdOut]
     .map((value) => clampSeconds(value))
-    .join("–");
+    .join("·");
 }
 
 export default function CustomPatternScreen() {
@@ -74,7 +73,6 @@ export default function CustomPatternScreen() {
     };
   }, []);
 
-  const accent = stateColors[goal];
   const current: CustomPattern = { id: editingId ?? "draft", name, goal, rounds, seconds };
   const total = totalSeconds(current);
   const canPlay = isPlayable(current);
@@ -124,63 +122,52 @@ export default function CustomPatternScreen() {
   }, []);
 
   return (
-    <ScreenBackground id="customBg" top={homeScreenTones.top} mid={homeScreenTones.mid} base={homeScreenTones.base}>
+    <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable style={styles.closeChip} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Назад">
-            <Ionicons name="chevron-back" size={20} color="#C9D4E0" />
+        <View style={styles.topBar}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Назад">
+            <Ionicons name="chevron-back" size={22} color={editorial.ink} />
           </Pressable>
-          <View style={styles.headerText}>
-            <Text style={styles.heading}>Свой паттерн</Text>
-            <Text style={styles.sub}>Настройте ритм под себя — бесплатно</Text>
-          </View>
+          <Text style={styles.eyebrow}>СВОЙ РИТМ</Text>
         </View>
 
+        <Text style={styles.heading}>Свой ритм</Text>
+        <Text style={styles.sub}>Настройте вдох, паузы и выдох под себя</Text>
+
         <View style={styles.card}>
-          {PHASE_ROWS.map((row) => (
-            <View key={row.key} style={styles.stepRow}>
-              <Text style={styles.stepLabel}>{row.label}</Text>
+          {PHASE_ROWS.map((row, index) => (
+            <View key={row.key} style={[styles.phaseRow, index === PHASE_ROWS.length - 1 ? styles.phaseRowLast : null]}>
+              <Text style={styles.phaseLabel}>{row.label}</Text>
               <View style={styles.stepper}>
-                <Pressable
-                  style={styles.stepBtn}
-                  onPress={() => adjustPhase(row.key, -1)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${row.label}: меньше`}
-                >
-                  <Ionicons name="remove" size={18} color="#C9D4E0" />
+                <Pressable style={styles.stepBtn} onPress={() => adjustPhase(row.key, -1)} accessibilityRole="button" accessibilityLabel={`${row.label}: меньше`}>
+                  <Ionicons name="remove" size={16} color={editorial.inkSoft} />
                 </Pressable>
-                <Text style={styles.stepValue}>{clampSeconds(seconds[row.key])}<Text style={styles.stepUnit}> с</Text></Text>
-                <Pressable
-                  style={styles.stepBtn}
-                  onPress={() => adjustPhase(row.key, 1)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${row.label}: больше`}
-                >
-                  <Ionicons name="add" size={18} color="#C9D4E0" />
+                <Text style={styles.stepValue}>{clampSeconds(seconds[row.key])}</Text>
+                <Pressable style={styles.stepBtn} onPress={() => adjustPhase(row.key, 1)} accessibilityRole="button" accessibilityLabel={`${row.label}: больше`}>
+                  <Ionicons name="add" size={16} color={editorial.inkSoft} />
                 </Pressable>
               </View>
             </View>
           ))}
+        </View>
 
-          <View style={[styles.stepRow, styles.stepRowLast]}>
-            <Text style={styles.stepLabel}>Раунды</Text>
-            <View style={styles.stepper}>
-              <Pressable style={styles.stepBtn} onPress={() => adjustRounds(-1)} accessibilityRole="button" accessibilityLabel="Раунды: меньше">
-                <Ionicons name="remove" size={18} color="#C9D4E0" />
-              </Pressable>
-              <Text style={styles.stepValue}>{clampRounds(rounds)}</Text>
-              <Pressable style={styles.stepBtn} onPress={() => adjustRounds(1)} accessibilityRole="button" accessibilityLabel="Раунды: больше">
-                <Ionicons name="add" size={18} color="#C9D4E0" />
-              </Pressable>
-            </View>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryText}>
+            <Text style={styles.summaryRhythm}>Ритм {rhythmLabel(seconds)}</Text>
+            <Text style={styles.summaryMeta}>{clampRounds(rounds)} раундов · {formatTotal(total)}</Text>
+          </View>
+          <View style={styles.stepper}>
+            <Pressable style={styles.stepBtn} onPress={() => adjustRounds(-1)} accessibilityRole="button" accessibilityLabel="Раунды: меньше">
+              <Ionicons name="remove" size={16} color={editorial.inkSoft} />
+            </Pressable>
+            <Text style={styles.roundsLabel}>раунды</Text>
+            <Pressable style={styles.stepBtn} onPress={() => adjustRounds(1)} accessibilityRole="button" accessibilityLabel="Раунды: больше">
+              <Ionicons name="add" size={16} color={editorial.inkSoft} />
+            </Pressable>
           </View>
         </View>
 
-        <Text style={styles.totalLine}>
-          Ритм {rhythmLabel(seconds)} · длительность {formatTotal(total)}
-        </Text>
-
-        <Text style={styles.eyebrow}>Состояние</Text>
+        <Text style={styles.sectionEyebrow}>Состояние</Text>
         <View style={styles.goalRow}>
           {GOALS.map((g) => {
             const isActive = g === goal;
@@ -188,10 +175,7 @@ export default function CustomPatternScreen() {
               <Pressable
                 key={g}
                 onPress={() => setGoal(g)}
-                style={[
-                  styles.goalPill,
-                  isActive ? { backgroundColor: stateColors[g], borderColor: stateColors[g] } : null,
-                ]}
+                style={[styles.goalPill, isActive ? styles.goalPillActive : null]}
                 accessibilityRole="button"
                 accessibilityLabel={goalLabels[g]}
               >
@@ -205,13 +189,13 @@ export default function CustomPatternScreen() {
           value={name}
           onChangeText={setName}
           placeholder="Название пресета (необязательно)"
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={editorial.inkFaint}
           style={styles.nameInput}
           maxLength={40}
         />
 
         <Pressable
-          style={[styles.primaryButton, { backgroundColor: accent }, !canPlay ? styles.disabled : null]}
+          style={[styles.primaryButton, !canPlay ? styles.disabled : null]}
           onPress={handleStart}
           disabled={!canPlay}
           accessibilityRole="button"
@@ -225,7 +209,7 @@ export default function CustomPatternScreen() {
             <Text style={styles.secondaryText}>{editingId ? "Обновить пресет" : "Сохранить пресет"}</Text>
           </Pressable>
           {editingId ? (
-            <Pressable style={styles.secondaryButton} onPress={handleNew} accessibilityRole="button" accessibilityLabel="Новый паттерн">
+            <Pressable style={styles.secondaryButton} onPress={handleNew} accessibilityRole="button" accessibilityLabel="Новый ритм">
               <Text style={styles.secondaryText}>Новый</Text>
             </Pressable>
           ) : null}
@@ -233,7 +217,7 @@ export default function CustomPatternScreen() {
 
         {presets.length > 0 ? (
           <View style={styles.presetsBlock}>
-            <Text style={styles.eyebrow}>Мои пресеты</Text>
+            <Text style={styles.sectionEyebrow}>Мои пресеты</Text>
             {presets.map((preset) => (
               <View key={preset.id} style={styles.presetCard}>
                 <Pressable
@@ -245,150 +229,124 @@ export default function CustomPatternScreen() {
                   <View style={[styles.presetDot, { backgroundColor: stateColors[preset.goal] }]} />
                   <View style={styles.presetTextWrap}>
                     <Text style={styles.presetName}>{preset.name.trim() || "Без названия"}</Text>
-                    <Text style={styles.presetMeta}>
-                      {rhythmLabel(preset.seconds)} · {formatTotal(totalSeconds(preset))}
-                    </Text>
+                    <Text style={styles.presetMeta}>{rhythmLabel(preset.seconds)} · {formatTotal(totalSeconds(preset))}</Text>
                   </View>
-                  <Ionicons name="play" size={18} color={stateColors[preset.goal]} />
+                  <Ionicons name="play" size={18} color={editorial.clay} />
                 </Pressable>
-                <Pressable
-                  style={styles.presetIconBtn}
-                  onPress={() => handleEditPreset(preset)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Изменить ${preset.name || "пресет"}`}
-                >
-                  <Ionicons name="create-outline" size={18} color="#8892A4" />
+                <Pressable style={styles.presetIconBtn} onPress={() => handleEditPreset(preset)} accessibilityRole="button" accessibilityLabel={`Изменить ${preset.name || "пресет"}`}>
+                  <Ionicons name="create-outline" size={18} color={editorial.inkSoft} />
                 </Pressable>
-                <Pressable
-                  style={styles.presetIconBtn}
-                  onPress={() => handleDeletePreset(preset.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Удалить ${preset.name || "пресет"}`}
-                >
-                  <Ionicons name="trash-outline" size={18} color="#8892A4" />
+                <Pressable style={styles.presetIconBtn} onPress={() => handleDeletePreset(preset.id)} accessibilityRole="button" accessibilityLabel={`Удалить ${preset.name || "пресет"}`}>
+                  <Ionicons name="trash-outline" size={18} color={editorial.inkSoft} />
                 </Pressable>
               </View>
             ))}
           </View>
         ) : null}
       </ScrollView>
-    </ScreenBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.xl, paddingTop: 26, paddingBottom: 104, gap: spacing.lg },
-  header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  closeChip: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerText: { flex: 1, gap: 2 },
-  heading: {
-    fontFamily: fontFamily.display,
-    color: "#EAF0F8",
-    fontSize: 28,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-  },
-  sub: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
-  card: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderColor: "rgba(255,255,255,0.12)",
-    borderWidth: 1,
-    borderRadius: radius.xl,
-    paddingHorizontal: spacing.lg,
-  },
-  stepRow: {
+  root: { flex: 1, backgroundColor: editorial.paper },
+  content: { paddingHorizontal: 24, paddingTop: 26, paddingBottom: 104, gap: 14 },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
+  backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", marginLeft: -8 },
+  eyebrow: { color: editorial.inkFaint, fontSize: 11, fontWeight: "700", letterSpacing: 1.5 },
+  heading: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 34, lineHeight: 38 },
+  sub: { color: editorial.inkSoft, fontSize: 14, lineHeight: 20, marginBottom: 4 },
+  card: { backgroundColor: editorial.paperRaised, borderRadius: 16, paddingHorizontal: 18 },
+  phaseRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: spacing.md,
-    borderBottomColor: "rgba(255,255,255,0.08)",
+    paddingVertical: 13,
+    borderBottomColor: editorial.hairline,
     borderBottomWidth: 1,
   },
-  stepRowLast: { borderBottomWidth: 0 },
-  stepLabel: { color: "#E7EDF5", fontSize: 15, fontWeight: "600", flex: 1, paddingRight: spacing.md },
-  stepper: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  phaseRowLast: { borderBottomWidth: 0 },
+  phaseLabel: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 18, flex: 1 },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 14 },
   stepBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderColor: editorial.hairline,
     alignItems: "center",
     justifyContent: "center",
   },
-  stepValue: { color: "#F2F6FA", fontSize: 18, fontWeight: "700", minWidth: 52, textAlign: "center" },
-  stepUnit: { color: colors.textMuted, fontSize: 13, fontWeight: "600" },
-  totalLine: { color: "#9DB0C4", fontSize: 13, fontWeight: "600", textAlign: "center" },
-  eyebrow: {
-    color: colors.textMuted,
+  stepValue: { color: editorial.clay, fontSize: 19, fontWeight: "500", minWidth: 30, textAlign: "center" },
+  roundsLabel: { color: editorial.inkFaint, fontSize: 12, fontWeight: "600" },
+  summaryCard: {
+    backgroundColor: editorial.paperRaised,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  summaryText: { flex: 1, gap: 2 },
+  summaryRhythm: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 20 },
+  summaryMeta: { color: editorial.inkSoft, fontSize: 13 },
+  sectionEyebrow: {
+    color: editorial.inkFaint,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.5,
     textTransform: "uppercase",
+    marginTop: 4,
   },
-  goalRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  goalRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   goalPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: radius.pill,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: editorial.hairline,
+    backgroundColor: editorial.paperRaised,
   },
-  goalPillText: { color: "#C5D0DD", fontSize: 13, fontWeight: "600" },
-  goalPillTextActive: { color: "#06121F", fontWeight: "700" },
+  goalPillActive: { backgroundColor: editorial.clay, borderColor: editorial.clay },
+  goalPillText: { color: editorial.inkSoft, fontSize: 13, fontWeight: "600" },
+  goalPillTextActive: { color: editorial.paper, fontWeight: "700" },
   nameInput: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: editorial.paperRaised,
+    borderColor: editorial.hairline,
     borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    color: "#F1ECE3",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    color: editorial.ink,
     fontSize: 15,
   },
   primaryButton: {
     minHeight: 54,
-    borderRadius: radius.md,
+    borderRadius: 12,
+    backgroundColor: editorial.clay,
     alignItems: "center",
     justifyContent: "center",
   },
-  primaryText: { color: "#06121F", fontSize: 16, fontWeight: "700" },
-  disabled: { opacity: 0.5 },
-  secondaryRow: { flexDirection: "row", gap: spacing.md },
-  secondaryButton: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  secondaryText: { color: "#D6DEE8", fontSize: 14, fontWeight: "600" },
-  presetsBlock: { gap: spacing.sm, marginTop: spacing.sm },
+  primaryText: { color: editorial.paper, fontSize: 16, fontWeight: "700" },
+  disabled: { opacity: 0.45 },
+  secondaryRow: { flexDirection: "row", gap: 12 },
+  secondaryButton: { flex: 1, minHeight: 46, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  secondaryText: { color: editorial.inkSoft, fontSize: 14, fontWeight: "600" },
+  presetsBlock: { gap: 8, marginTop: 4 },
   presetCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderColor: "rgba(255,255,255,0.12)",
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    backgroundColor: editorial.paperRaised,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    gap: 8,
   },
-  presetMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.md },
+  presetMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
   presetDot: { width: 10, height: 10, borderRadius: 5 },
   presetTextWrap: { flex: 1, gap: 2 },
-  presetName: { color: "#EAF0F8", fontSize: 15, fontWeight: "700" },
-  presetMeta: { color: colors.textMuted, fontSize: 12, fontWeight: "500" },
+  presetName: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 16 },
+  presetMeta: { color: editorial.inkSoft, fontSize: 12 },
   presetIconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
 });
