@@ -25,11 +25,11 @@ import { editorial, editorialFont } from "@/theme/editorial";
 import { stateColors } from "@/theme/tokens";
 import type { BreathingGoal } from "@/types/breathing";
 
-const PHASE_ROWS: readonly { key: keyof CustomPhaseSeconds; label: string }[] = [
+const PHASE_ROWS: readonly { key: keyof CustomPhaseSeconds; label: string; sub?: string }[] = [
   { key: "inhale", label: "Вдох" },
-  { key: "holdIn", label: "Пауза" },
+  { key: "holdIn", label: "Задержка", sub: "после вдоха" },
   { key: "exhale", label: "Выдох" },
-  { key: "holdOut", label: "Пауза" },
+  { key: "holdOut", label: "Задержка", sub: "после выдоха" },
 ];
 
 const GOALS: readonly BreathingGoal[] = ["calm", "focus", "recover", "sleep", "fear", "pain", "irritation"];
@@ -57,6 +57,7 @@ export default function CustomPatternScreen() {
   const [name, setName] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [presets, setPresets] = useState<readonly CustomPattern[]>([]);
+  const [showStates, setShowStates] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -96,14 +97,18 @@ export default function CustomPatternScreen() {
     setRounds((prev) => clampRounds(prev + delta));
   }, []);
 
-  const selectGoal = useCallback((nextGoal: BreathingGoal) => {
-    setGoal(nextGoal);
-    if (editingId === null) {
-      const base = baseForGoal(nextGoal);
-      setSeconds(base.seconds);
-      setRounds(base.rounds);
-    }
-  }, [editingId]);
+  const selectGoal = useCallback(
+    (nextGoal: BreathingGoal) => {
+      setGoal(nextGoal);
+      setShowStates(false);
+      if (editingId === null) {
+        const base = baseForGoal(nextGoal);
+        setSeconds(base.seconds);
+        setRounds(base.rounds);
+      }
+    },
+    [editingId]
+  );
 
   const handleStart = useCallback(async () => {
     if (!canPlay) return;
@@ -152,12 +157,46 @@ export default function CustomPatternScreen() {
         </View>
 
         <Text style={styles.heading}>Свой ритм</Text>
-        <Text style={styles.sub}>Настройте вдох, паузы и выдох под себя</Text>
+        <Text style={styles.sub}>Настройте вдох, задержки и выдох под себя</Text>
+
+        <Pressable
+          style={styles.stateChip}
+          onPress={() => setShowStates((v) => !v)}
+          accessibilityRole="button"
+          accessibilityLabel={`Состояние: ${goalLabels[goal]}. Изменить`}
+        >
+          <View style={[styles.stateChipDot, { backgroundColor: stateColors[goal] }]} />
+          <Text style={styles.stateChipLabel}>{goalLabels[goal]}</Text>
+          <Ionicons name={showStates ? "chevron-up" : "chevron-down"} size={14} color={editorial.clay} />
+        </Pressable>
+
+        {showStates ? (
+          <View style={styles.statePills}>
+            {GOALS.map((g) => {
+              const active = g === goal;
+              return (
+                <Pressable
+                  key={g}
+                  style={[styles.statePill, active ? styles.statePillActive : null]}
+                  onPress={() => selectGoal(g)}
+                  accessibilityRole="button"
+                  accessibilityLabel={goalLabels[g]}
+                >
+                  {!active ? <View style={[styles.statePillDot, { backgroundColor: stateColors[g] }]} /> : null}
+                  <Text style={[styles.statePillText, active ? styles.statePillTextActive : null]}>{goalLabels[g]}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
 
         <View style={styles.card}>
           {PHASE_ROWS.map((row, index) => (
             <View key={row.key} style={[styles.phaseRow, index === PHASE_ROWS.length - 1 ? styles.phaseRowLast : null]}>
-              <Text style={styles.phaseLabel}>{row.label}</Text>
+              <Text style={styles.phaseLabel} numberOfLines={1}>
+                {row.label}
+                {row.sub ? <Text style={styles.phaseSub}> · {row.sub}</Text> : null}
+              </Text>
               <View style={styles.stepper}>
                 <Pressable style={styles.stepBtn} onPress={() => adjustPhase(row.key, -1)} accessibilityRole="button" accessibilityLabel={`${row.label}: меньше`}>
                   <Ionicons name="remove" size={16} color={editorial.inkSoft} />
@@ -174,35 +213,20 @@ export default function CustomPatternScreen() {
         <View style={styles.summaryCard}>
           <View style={styles.summaryText}>
             <Text style={styles.summaryRhythm}>Ритм {rhythmLabel(seconds)}</Text>
-            <Text style={styles.summaryMeta}>{clampRounds(rounds)} раундов · {formatTotal(total)}</Text>
+            <Text style={styles.summaryMeta}>{formatTotal(total)}</Text>
           </View>
           <View style={styles.stepper}>
             <Pressable style={styles.stepBtn} onPress={() => adjustRounds(-1)} accessibilityRole="button" accessibilityLabel="Раунды: меньше">
               <Ionicons name="remove" size={16} color={editorial.inkSoft} />
             </Pressable>
-            <Text style={styles.roundsLabel}>раунды</Text>
+            <View style={styles.roundsValueWrap}>
+              <Text style={styles.roundsValue}>{clampRounds(rounds)}</Text>
+              <Text style={styles.roundsCaption}>раунды</Text>
+            </View>
             <Pressable style={styles.stepBtn} onPress={() => adjustRounds(1)} accessibilityRole="button" accessibilityLabel="Раунды: больше">
               <Ionicons name="add" size={16} color={editorial.inkSoft} />
             </Pressable>
           </View>
-        </View>
-
-        <Text style={styles.sectionEyebrow}>Состояние</Text>
-        <View style={styles.goalRow}>
-          {GOALS.map((g) => {
-            const isActive = g === goal;
-            return (
-              <Pressable
-                key={g}
-                onPress={() => selectGoal(g)}
-                style={[styles.goalPill, isActive ? styles.goalPillActive : null]}
-                accessibilityRole="button"
-                accessibilityLabel={goalLabels[g]}
-              >
-                <Text style={[styles.goalPillText, isActive ? styles.goalPillTextActive : null]}>{goalLabels[g]}</Text>
-              </Pressable>
-            );
-          })}
         </View>
 
         <TextInput
@@ -237,7 +261,7 @@ export default function CustomPatternScreen() {
 
         {presets.length > 0 ? (
           <View style={styles.presetsBlock}>
-            <Text style={styles.sectionEyebrow}>Мои пресеты</Text>
+            <Text style={styles.presetsEyebrow}>Мои пресеты</Text>
             {presets.map((preset) => (
               <View key={preset.id} style={styles.presetCard}>
                 <Pressable
@@ -251,7 +275,9 @@ export default function CustomPatternScreen() {
                     <Text style={styles.presetName}>{preset.name.trim() || "Без названия"}</Text>
                     <Text style={styles.presetMeta}>{rhythmLabel(preset.seconds)} · {formatTotal(totalSeconds(preset))}</Text>
                   </View>
-                  <Ionicons name="play" size={18} color={editorial.clay} />
+                  <View style={styles.presetPlay}>
+                    <Ionicons name="play" size={15} color={editorial.clay} />
+                  </View>
                 </Pressable>
                 <Pressable style={styles.presetIconBtn} onPress={() => handleEditPreset(preset)} accessibilityRole="button" accessibilityLabel={`Изменить ${preset.name || "пресет"}`}>
                   <Ionicons name="create-outline" size={18} color={editorial.inkSoft} />
@@ -275,7 +301,38 @@ const styles = StyleSheet.create({
   backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", marginLeft: -8 },
   eyebrow: { color: editorial.inkFaint, fontSize: 11, fontWeight: "700", letterSpacing: 1.5 },
   heading: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 34, lineHeight: 38 },
-  sub: { color: editorial.inkSoft, fontSize: 14, lineHeight: 20, marginBottom: 4 },
+  sub: { color: editorial.inkSoft, fontSize: 14, lineHeight: 20 },
+  stateChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    backgroundColor: "rgba(192,87,58,0.10)",
+    borderColor: "rgba(192,87,58,0.28)",
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  stateChipDot: { width: 7, height: 7, borderRadius: 4 },
+  stateChipLabel: { fontFamily: editorialFont.sans, fontSize: 13, fontWeight: "700", color: editorial.clay },
+  statePills: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  statePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    width: "47%",
+    backgroundColor: editorial.paperRaised,
+    borderColor: editorial.hairline,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  statePillActive: { backgroundColor: editorial.clay, borderColor: editorial.clay, justifyContent: "center" },
+  statePillDot: { width: 7, height: 7, borderRadius: 4 },
+  statePillText: { fontFamily: editorialFont.sans, fontSize: 13, fontWeight: "600", color: editorial.ink },
+  statePillTextActive: { color: editorial.paper, fontWeight: "700" },
   card: { backgroundColor: editorial.paperRaised, borderRadius: 16, paddingHorizontal: 18 },
   phaseRow: {
     flexDirection: "row",
@@ -286,7 +343,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   phaseRowLast: { borderBottomWidth: 0 },
-  phaseLabel: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 18, flex: 1 },
+  phaseLabel: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 17, flex: 1, paddingRight: 10 },
+  phaseSub: { fontFamily: editorialFont.sans, color: editorial.inkFaint, fontSize: 11, fontWeight: "600" },
   stepper: { flexDirection: "row", alignItems: "center", gap: 14 },
   stepBtn: {
     width: 30,
@@ -297,8 +355,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  stepValue: { color: editorial.clay, fontSize: 19, fontWeight: "500", minWidth: 30, textAlign: "center" },
-  roundsLabel: { color: editorial.inkFaint, fontSize: 12, fontWeight: "600" },
+  stepValue: { color: editorial.clay, fontSize: 18, fontWeight: "500", minWidth: 28, textAlign: "center" },
+  roundsValueWrap: { minWidth: 40, alignItems: "center" },
+  roundsValue: { color: editorial.ink, fontSize: 18, fontWeight: "500", lineHeight: 20 },
+  roundsCaption: { color: editorial.inkFaint, fontSize: 10, fontWeight: "600" },
   summaryCard: {
     backgroundColor: editorial.paperRaised,
     borderRadius: 16,
@@ -311,26 +371,6 @@ const styles = StyleSheet.create({
   summaryText: { flex: 1, gap: 2 },
   summaryRhythm: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 20 },
   summaryMeta: { color: editorial.inkSoft, fontSize: 13 },
-  sectionEyebrow: {
-    color: editorial.inkFaint,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    marginTop: 4,
-  },
-  goalRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  goalPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: editorial.hairline,
-    backgroundColor: editorial.paperRaised,
-  },
-  goalPillActive: { backgroundColor: editorial.clay, borderColor: editorial.clay },
-  goalPillText: { color: editorial.inkSoft, fontSize: 13, fontWeight: "600" },
-  goalPillTextActive: { color: editorial.paper, fontWeight: "700" },
   nameInput: {
     backgroundColor: editorial.paperRaised,
     borderColor: editorial.hairline,
@@ -341,19 +381,20 @@ const styles = StyleSheet.create({
     color: editorial.ink,
     fontSize: 15,
   },
-  primaryButton: {
-    minHeight: 54,
-    borderRadius: 12,
-    backgroundColor: editorial.clay,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  primaryButton: { minHeight: 54, borderRadius: 12, backgroundColor: editorial.clay, alignItems: "center", justifyContent: "center" },
   primaryText: { color: editorial.paper, fontSize: 16, fontWeight: "700" },
   disabled: { opacity: 0.45 },
   secondaryRow: { flexDirection: "row", gap: 12 },
   secondaryButton: { flex: 1, minHeight: 46, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   secondaryText: { color: editorial.inkSoft, fontSize: 14, fontWeight: "600" },
   presetsBlock: { gap: 8, marginTop: 4 },
+  presetsEyebrow: {
+    color: editorial.inkFaint,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
   presetCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -368,5 +409,13 @@ const styles = StyleSheet.create({
   presetTextWrap: { flex: 1, gap: 2 },
   presetName: { fontFamily: editorialFont.serif, color: editorial.ink, fontSize: 16 },
   presetMeta: { color: editorial.inkSoft, fontSize: 12 },
+  presetPlay: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(192,87,58,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   presetIconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
 });
