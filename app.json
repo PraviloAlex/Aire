@@ -23,8 +23,8 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "themeColor": "#070A11",
-      "backgroundColor": "#070A11",
+      "themeColor": "#F4F0E7",
+      "backgroundColor": "#F4F0E7",
       "shortName": "Aire",
       "lang": "ru",
       "scope": "/",
@@ -35,7 +35,8 @@
       "expo-audio"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "baseUrl": "/aire"
     },
     "extra": {
       "router": {},
