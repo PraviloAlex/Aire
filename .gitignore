@@ -41,3 +41,8 @@ Thumbs.db
 
 # Старые HTML-эксперименты орба (не публиковать)
 prototypes/
+
+# Внутренние dev/AI-заметки (не публиковать)
+AGENTS.md
+CLAUDE.md
+aire-session-shader-orb.plan.md
