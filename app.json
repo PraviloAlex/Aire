@@ -35,8 +35,7 @@
       "expo-audio"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "baseUrl": "/Aire"
+      "typedRoutes": true
     },
     "extra": {
       "router": {},
