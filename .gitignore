@@ -46,3 +46,7 @@ prototypes/
 AGENTS.md
 CLAUDE.md
 aire-session-shader-orb.plan.md
+
+# Внутреннее — не публиковать
+docs/
+run-aire.bat
