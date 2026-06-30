@@ -38,6 +38,7 @@ export function SessionReflection({ goal, practiceId, durationSeconds, bpmBefore
   const [saveError, setSaveError] = useState(false);
   const [bpmAfter, setBpmAfter] = useState<number | null>(null);
   const [showAfterMeasure, setShowAfterMeasure] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const isSavingRef = useRef(false);
 
   const handleSave = async () => {
@@ -187,6 +188,20 @@ export function SessionReflection({ goal, practiceId, durationSeconds, bpmBefore
           </View>
         )}
 
+        {!showDetails ? (
+          <Pressable
+            style={styles.detailsToggle}
+            onPress={() => setShowDetails(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Добавить детали"
+          >
+            <Ionicons name="add" size={16} color={editorial.inkSoft} />
+            <Text style={styles.detailsToggleLabel}>Добавить детали</Text>
+          </Pressable>
+        ) : null}
+
+        {showDetails ? (
+          <>
         <Text style={styles.sectionLabel}>Что повлияло?</Text>
         <View style={styles.chipRow}>
           {reflectionTriggers.map((t) => {
@@ -215,6 +230,8 @@ export function SessionReflection({ goal, practiceId, durationSeconds, bpmBefore
           numberOfLines={3}
           accessibilityLabel="Заметка к сессии"
         />
+          </>
+        ) : null}
 
         {saveError && <Text style={styles.saveErrorText}>Не удалось сохранить. Попробуй ещё раз.</Text>}
 
@@ -313,6 +330,17 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: "top",
   },
+  detailsToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: editorial.hairline,
+  },
+  detailsToggleLabel: { fontFamily: editorialFont.sans, color: editorial.inkSoft, fontSize: 14, fontWeight: "600" },
   saveErrorText: { fontFamily: editorialFont.sans, color: DANGER, fontSize: 13, fontWeight: "600", textAlign: "center" },
   saveButton: {
     alignItems: "center",
